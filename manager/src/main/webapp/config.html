@@ -1,0 +1,145 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>index.json配置</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<link rel="stylesheet" type="text/css" href="css/custom-theme/jquery-ui-1.8.14.custom.css">
+<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.14.custom.min.js"></script>
+
+<style>
+#editor li img {
+	margin-right:20px;
+}
+</style>
+<script lanuage="javascript">
+var indexJson="";
+$(document).ready(function(){
+	loadData();
+	$("#content").keyup(function(){
+		$("#contentDiv").html(formatJson($("#content").val()));
+	});
+	$("#editBtn").click(function(){
+		$("#content").val(indexJson);
+		$("#contentDiv").html(formatJson(indexJson));
+		$("#editDialog").dialog("open");
+	});
+	$("#sendBtn").click(function(){
+		$.ajax({
+            url: "api/config/tempjson",
+            data:$("#content").val(),
+            contentType:"text/plain; charset=UTF-8",
+            type: "put",
+            success: function(resp){
+                if(resp=='true'){
+                	$("#editDialog").dialog("close");
+                	loadData();
+                }else{
+                	alert(resp);
+                }
+           }
+    	});
+	});
+	$("#nowBtn").click(function(){
+		$.ajax({
+            url: "api/config/json",
+            data:"a",
+            type: "put",
+            success: function(resp){
+                if(resp=='true'){
+                	loadData();
+                	alert("已生效");
+                }else{
+                	alert("保存失败");
+                }
+           }
+    	});
+	});
+	$("#editDialog").dialog({
+		title:"编辑json",
+		autoOpen: false,
+		minHeight: $(window).height()-20,
+		minWidth:$(window).width()-20,
+		modal: true
+	});	
+
+});
+//formatJson() :: formats and indents JSON string
+function formatJson(val) {
+	var retval = '';
+	var str = val;
+    var pos = 0;
+    var strLen = str.length;
+	var indentStr = '&nbsp;&nbsp;';
+    var newLine = '<br/>';
+	var char = '';
+	
+	for (var i=0; i<strLen; i++) {
+		char = str.substring(i,i+1);
+		if (char == '}' || char == ']') {
+			retval = retval + newLine;
+			pos = pos - 1;
+			for (var j=0; j<pos; j++) {
+				retval = retval + indentStr;
+			}
+		}
+		retval = retval + char;	
+		if (char == '{' || char == '[' || char == ',') {
+			retval = retval + newLine;
+			if (char == '{' || char == '[') {
+				pos = pos + 1;
+			}
+			for (var k=0; k<pos; k++) {
+				retval = retval + indentStr;
+			}
+		}
+	}
+	return retval;
+}
+function loadData(){
+	$.ajax({
+        url: "api/config/json",
+        type: "get",
+        success: function(resp){
+        	if(resp.indexOf("temp")==0){
+        		indexJson=resp.substring(4,resp.length);
+        		$("#fileName").text("index_temp.json");
+        		$("#nowBtn").show();
+        	}else{
+        		indexJson=resp;
+        		$("#fileName").text("index.json");
+        		$("#nowBtn").hide();
+        	}
+        	$("#showDiv").html(formatJson(indexJson));
+        }
+	});           
+}
+</script>
+</head>
+
+<body>
+<header> <a class="logo"></a> </header>
+<!--#include virtual="./menu.html" -->
+<div class="wrap">
+		<h2 class="title"><a href="">系统管理</a> > index.json配置</h2>
+		<div class="search cf">
+		
+		<table>
+		<tr ><td >客户端加载时的配置json文件，/var/lib/android-coral-bay/web-static/client/home/<span id="fileName">index.json</span><input type="button"  id="editBtn"  value="编辑"/>&nbsp;&nbsp;&nbsp;
+		<input type="button"  id="nowBtn"  value="配置立即生效" style="display: none"/></td></tr>
+			<tr ><td style="vertical-align: top;" colspan="2"><div id="showDiv"  style="border-style:solid;border-width:2pt;"></div></td></tr>
+		</table>
+		</div>
+</div>
+
+<div id="editDialog" >
+<table >
+<tr><td colspan="2">	<input type="button"  id="sendBtn"  value="保存"/></td></tr>
+		<tr><td  width="50%"><textarea rows="40" cols="85"   id="content"></textarea></td><td style="vertical-align: top;" ><div id="contentDiv"  style="border-style:solid;border-width:2pt;"></div></td></tr>
+		
+</table>
+</div>
+
+</body>
+</html>

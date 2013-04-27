@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+         http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+         http://www.springframework.org/schema/context
+         http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<context:annotation-config />
+	<context:component-scan base-package="com.babeeta.appstore" />
+	<bean id="appDao" class="com.babeeta.appstore.dao.impl.AppDaoImpl" autowire="byName" destroy-method="shutdown"/>
+	<bean id="eoeMarketAPKDao" class="com.babeeta.appstore.dao.impl.EoeMarketAPKDaoImpl" autowire="byName" destroy-method="shutdown"/>
+	<bean id="eoeMarketApplicationDetailDao" class="com.babeeta.appstore.dao.impl.EoeMarketApplicationDetailDaoImpl" autowire="byName" destroy-method="shutdown"/>
+	<bean id="eoeMarketRedirectionDao" class="com.babeeta.appstore.dao.impl.EoeMarketRedirectionDaoImpl" autowire="byName" destroy-method="shutdown"/>
+	<bean id="gFanAPKDao" class="com.babeeta.appstore.dao.impl.GFanAPKDaoImpl" autowire="byName" destroy-method="shutdown"/>
+	<bean id="gFanApplicationDetailDao" class="com.babeeta.appstore.dao.impl.GFanApplicationDetailDaoImpl" autowire="byName" destroy-method="shutdown"/>
+	<bean id="gFanRedirectionDao" class="com.babeeta.appstore.dao.impl.GFanRedirectionDaoImpl" autowire="byName" destroy-method="shutdown"/>
+	<bean id="googlePlayDao" class="com.babeeta.appstore.dao.impl.GooglePlayDaoImpl" autowire="byName" destroy-method="shutdown"/>
+	<bean id="deviceDao" class="com.babeeta.appstore.dao.impl.DeviceDaoImpl" autowire="byName" destroy-method="shutdown"/>
+	<bean id="appUpdateNoticeDao" class="com.babeeta.appstore.dao.impl.AppUpdateNoticeDaoImpl" autowire="byName" destroy-method="shutdown"/>
+	<bean id="ssService" class="com.babeeta.appstore.storage.LocalDiskSimpleStorageService" autowire="byName" />
+</beans>

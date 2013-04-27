@@ -1,0 +1,10 @@
+<configuration>
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>		
+			<Pattern>%d %p %t %logger{5}\(%L\) %m%n</Pattern>		
+		</encoder>
+	</appender>
+	<root level="DEBUG">
+		<appender-ref ref="STDOUT" />
+	</root>
+</configuration>

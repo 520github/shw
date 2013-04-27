@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+  xmlns:beans="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+           http://www.springframework.org/schema/security
+           http://www.springframework.org/schema/security/spring-security-3.0.3.xsd">
+ 
+	<http use-expressions="true" auto-config="false" >
+		<remember-me key="android-manager.shanghubay.com" services-ref="authTokenBasedRememberMeService"/>	  	
+		<intercept-url pattern="/login.html*" filters="none" />
+		<intercept-url pattern="/menu.html" filters="none" />
+		<intercept-url pattern="/favicon.ico" filters="none" />		
+		<intercept-url pattern="/images/**" filters="none" />
+		<intercept-url pattern="/css/**" filters="none" />
+		<intercept-url pattern="/js/**" filters="none" />
+		<intercept-url pattern="/push.html" access="hasRole('SHANHU-NOTIFICATION-MANAGER')" />
+		<intercept-url pattern="/api/push-journal/**" access="hasRole('SHANHU-NOTIFICATION-MANAGER')" />
+		<intercept-url pattern="/sheepcounter.html" access="hasRole('SHANHU-MARKETING-MANAGER')" />
+		<intercept-url pattern="/api/sheepcounter/**" access="hasRole('SHANHU-MARKETING-MANAGER')" />
+		<intercept-url pattern="/**" access="hasRole('SHANHU-EDITOR')" />
+		<form-login login-page="/login.html" default-target-url="/login-success.json" always-use-default-target="true" authentication-failure-url="/login.html?error"/>
+		<logout/>
+	</http>
+	<ldap-server url="ldap://ldap.shanhubay.com:389/dc=shanhubay,dc=com"/>
+	<ldap-user-service id="userDetailService" user-search-filter="(uid={0})" user-search-base="ou=people" group-search-base="ou=groups" role-prefix="none" />
+	<authentication-manager>
+		<ldap-authentication-provider user-dn-pattern="uid={0},ou=people" group-search-base="ou=groups" role-prefix="none" />
+	</authentication-manager>
+
+</beans:beans>

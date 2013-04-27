@@ -1,0 +1,228 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>审核列表</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<link rel="stylesheet" type="text/css" href="css/custom-theme/jquery-ui-1.8.14.custom.css">
+<link rel="stylesheet" type="text/css" href="css/pagination.css">
+<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.14.custom.min.js"></script>
+<script type="text/javascript" src="js/jquery.validate.min.js"></script>
+<script type="text/javascript" src="js/jquery.paginator.1.0.0.M1.js"></script>
+<script type="text/javascript" src="js/jquery.simpletable.js"></script>
+<script type="text/javascript" src="js/jquery.history.js"></script>
+<script type="text/javascript" src="js/json2.js"></script>
+<script type="text/javascript" src="js/jquery.xeditor.js"></script>
+<script lanuage="javascript">
+var page_id = 0;
+
+function loadData(){
+                var param = new Array();
+                param.push({name: "search", value: $("#search").val()});
+                param.push({name: "offset", value: (page_id - 1) * 20});
+                param.push({name: "limit",  value: 20});
+                $.ajax({
+                        url: "api/app/awaiting/",
+                        data: param,
+                        dataType: "json",
+                        type: "get",
+                        success: function(resp){
+                                $(".pages")
+                                        .paginator("totalRecords", resp.total)
+                                        .paginator("selectPage", page_id)
+					.paginator("redraw");
+                                $("#dataList").simpleTable("fillData", resp.result);
+                                $(".intro .inside").empty();
+                        }
+                });
+}
+
+function hashTag(){
+        return "!/" + encodeURIComponent($("#search").val()) + "/__id__";
+}
+
+function edit( appId ){
+        $(document).xeditor("edit", appId);
+}
+
+$(document).ready(function(){
+        $(".pages").paginator({
+                total:true,
+                currentPageId:0,
+                hashTag: hashTag() 
+        });
+
+        $("#dataList").simpleTable({
+                cols:[
+                        "id", 
+							function(data){
+                                return '<a href="' + data.detail.url + '" target="_blank">' + data.detail.name + '</a>';
+                       		},
+            				function(data){
+								return data.catalog==null ?"": data.catalog.join(";");
+							},
+							"status",
+							"editor",
+                        function(data){
+                                return '<a href="javascript:void(0);" onclick="edit(\'' + data.id + '\')">审核</a>';
+                        	}
+                	]
+        })
+        .bind("selected",function(e, row){
+                $(".intro .inside").html(row.originalDescription);
+        });
+
+        $.history.init(function(hash){
+                onPage(hash);
+        }, {unescape: true});
+
+        $("#searchForm").submit(function(){
+                $.history.load("!/" + encodeURIComponent($("#search").val()) + "/1");
+        });
+
+        $(document).xeditor({
+                appUrl: "api/app/processed/{id}",
+                lockUrl: null,
+		note: "enable",
+		button: "audit"
+        });
+
+	$("#xeditor").bind("complete", function(){
+		loadData();
+	});
+});
+
+function onPage(hash){
+        var pageNumber = 1;
+        var match = hash.match(/\!\/(.*)\/(\d+)/);
+        if(match){
+                $("#search").val(decodeURIComponent(match[1]));
+                page_id = match[2];
+        }
+        else{
+                page_id =  1;
+        }
+
+        $(".pages")
+                .paginator("hashTag", hashTag());
+
+        loadData();
+}
+
+</script>
+</head>
+
+<body id="awaiting">
+<header> <a class="logo"></a> </header>
+<!--#include virtual="./menu.html" -->
+<div class="wrap">
+		<h2 class="title"><a href="">应用管理</a> > 审核列表</h2>
+		<div class="search cf">
+				<form id="searchForm">
+						<input type="text" id="search" class="input" placeholder="在这里搜索" />
+						<input type="submit" id="searchButton" class="submit button" value="搜索" />
+				</form>
+		</div>
+				<div class="table">
+						<table id="dataList" width="100%" border="0" cellspacing="0" cellpadding="0">
+								<thead>
+										<tr>
+												<th>ID</th>
+												<td>名称</td>
+												<td>分类</td>
+												<td>状态</td>
+												<td>操作人</td>
+												<td>操作</td>
+										</tr>
+								</thead>
+								<tbody>
+									<tr class="loading">
+										<td colspan="6">Loading</td>
+									</tr>
+								</tbody>
+								<tfoot>
+										<tr>
+												<th>ID</th>
+												<td>名称</td>
+												<td>分类</td>
+												<td>状态</td>
+												<td>操作人</td>
+												<td>操作</td>
+										</tr>
+								</tfoot>
+						</table>
+						<div class="pages"> <span class="num">共3页，27个项目</span> <span class="pagelinks"> <a href="" class="first disable">首页</a> <a href="" class="prev disable">上页</a> <span class="pageinput">第
+								<input value="1" />
+								页</span> <a href="" class="next">下页</a> <a href="" class="last">尾页</a> </span> </div>
+				</div>
+				<div class="popup_big cf">
+						<div class="close">X关闭窗口</div>
+						<h3 class="title">编辑APP信息</h3>
+						<div class="table">
+								<table width="100%" border="0" cellspacing="0" cellpadding="0">
+										<thead>
+												<tr>
+														<th>ID</th>
+														<td>名称</td>
+														<td>版本</td>
+														<td>大小</td>
+														<td>费用</td>
+														<td>评分</td>
+												</tr>
+										</thead>
+										<tbody>
+												<tr>
+														<th>0001</th>
+														<td>天然物语</td>
+														<td>1.0.1</td>
+														<td>23</td>
+														<td>$1.99</td>
+														<td>4.4</td>
+												</tr>
+										</tbody>
+								</table>
+						</div>
+						<ul class="edit">
+								<li><span>应用分类</span>
+										<select name="">
+												<option>分类一</option>
+												<option>分类二</option>
+										</select>
+										<select name="">
+												<option>分类一</option>
+												<option>分类二</option>
+										</select>
+								</li>
+								<li><span>一句话描述</span>
+										<input size="15" maxlength="15" placeholder="15个汉字" disabled="disabled" />
+								</li>
+								<li><span>简介（new）</span>
+										<textarea placeholder="1500字节，纯文本" disabled="disabled" ></textarea>
+								</li>
+								<li><span>推荐理由</span>
+										<textarea placeholder="150字节，纯文本" disabled="disabled" ></textarea>
+								</li>
+								<li class="buttons">
+										<button class="button">发布</button>
+										<button class="button">驳回</button>
+										<button class="button">撤销</button>
+								</li>
+								<li><span>备注</span>
+										<textarea></textarea>
+								</li>
+						</ul>
+						<div class="intro">
+								<h3>AppStore简介</h3>
+								<div class="inside">
+										<textarea></textarea>
+								</div>
+						</div>
+				</div>
+				<div class="delete">
+					<h4>确定要删除吗？</h4>
+					<button class="button">确定</button><button class="button">取消</button>
+				</div>
+</div>
+</body>
+</html>

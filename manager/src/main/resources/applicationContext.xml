@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+         http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+         http://www.springframework.org/schema/context
+         http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<context:annotation-config />
+	<context:component-scan base-package="com.babeeta" />
+
+	<bean id="appDao" class="com.babeeta.appstore.dao.impl.AppDaoImpl"
+		autowire="byName" destroy-method="shutdown" />
+	<bean id="appUpdateNoticeDao" class="com.babeeta.appstore.dao.impl.AppUpdateNoticeDaoImpl"
+		autowire="byName" destroy-method="shutdown" />
+	<bean id="catalogDao" class="com.babeeta.appstore.dao.impl.CatalogDaoImpl"
+		destroy-method="shutdown" />
+	<bean id="brandDao" class="com.babeeta.appstore.dao.impl.BrandDaoImpl"
+		destroy-method="shutdown" />
+	<bean id="deviceDao" class="com.babeeta.appstore.dao.impl.DeviceDaoImpl"
+		destroy-method="shutdown" />
+	<bean id="GroupItemDao" class="com.babeeta.appstore.dao.impl.GroupItemDaoImpl"
+		destroy-method="shutdown" />
+	<bean id="luceneWrapper" class="com.babeeta.appstore.dao.impl.LuceneWrapper"
+		destroy-method="close" />
+	<bean id="notificationDao" class="com.babeeta.appstore.dao.impl.NotificationDaoImpl"
+		destroy-method="shutdown" />
+	<bean id="taskDao" class="com.babeeta.appstore.dao.impl.TaskDaoImpl"
+		destroy-method="shutdown" />
+	<bean id="bestAppDao" class="com.babeeta.appstore.dao.impl.BestAppDaoImpl"
+		destroy-method="shutdown" />
+	<bean id="subscriptionRelationDao"
+		class="com.babeeta.appstore.dao.impl.SubscriptionRelationDaoImpl"
+		destroy-method="shutdown" />
+	<bean id="broadcastDao" class="com.babeeta.appstore.dao.impl.BroadcastDaoImpl"></bean>
+	<bean id="AppJudgementDao" class="com.babeeta.appstore.dao.impl.AppJudgementDaoImpl"></bean>
+	<bean id="urlDao" class="com.babeeta.sheepcounter.dao.impl.UrlDaoImpl"></bean>
+	<bean id="eoeMarketAPKDao" class="com.babeeta.appstore.dao.impl.EoeMarketAPKDaoImpl"
+		autowire="byName" destroy-method="shutdown" />
+	<bean id="eoeMarketApplicationDetailDao"
+		class="com.babeeta.appstore.dao.impl.EoeMarketApplicationDetailDaoImpl"
+		autowire="byName" destroy-method="shutdown" />
+	<bean id="eoeMarketRedirectionDao"
+		class="com.babeeta.appstore.dao.impl.EoeMarketRedirectionDaoImpl"
+		autowire="byName" destroy-method="shutdown" />
+	<bean id="gFanAPKDao" class="com.babeeta.appstore.dao.impl.GFanAPKDaoImpl"
+		autowire="byName" destroy-method="shutdown" />
+	<bean id="gFanApplicationDetailDao"
+		class="com.babeeta.appstore.dao.impl.GFanApplicationDetailDaoImpl"
+		autowire="byName" destroy-method="shutdown" />
+	<bean id="gFanRedirectionDao" class="com.babeeta.appstore.dao.impl.GFanRedirectionDaoImpl"
+		autowire="byName" destroy-method="shutdown" />
+	<bean id="googlePlayDao" class="com.babeeta.appstore.dao.impl.GooglePlayDaoImpl"
+		autowire="byName" destroy-method="shutdown" />
+	<bean id="ssService"
+		class="com.babeeta.appstore.storage.LocalDiskSimpleStorageService"
+		autowire="byName" />
+
+	<bean id="messagePush" class=" com.babeeta.appstore.manager.notification.MessagePush">
+		<property name="host" value="${push.host}"></property>
+		<property name="appId" value="${push.appId}"></property>
+		<property name="appKey" value="${push.appKey}"></property>
+	</bean>
+
+	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+				<bean class="org.springframework.scheduling.quartz.CronTriggerBean">
+					<property name="jobDetail">
+						<bean
+							class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+							<property name="targetObject" ref="noticeService" />
+							<property name="targetMethod" value="work" />
+							<property name="concurrent" value="false"/>
+						</bean>
+					</property>
+					<property name="cronExpression" value="0 2 8-22 * * ?" />
+				</bean>
+				<bean class="org.springframework.scheduling.quartz.CronTriggerBean">
+					<property name="jobDetail">
+						<bean
+							class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+							<property name="targetObject" ref="taskService" />
+							<property name="targetMethod" value="work" />
+							<property name="concurrent" value="false"/>
+						</bean>
+					</property>
+					<property name="cronExpression" value="5 * * * * ?" />
+				</bean>				
+			</list>
+		</property>
+	</bean>
+
+
+
+	<bean id="broadcastStateFactory"
+		class="com.babeeta.appstore.manager.service.impl.broadcast.state.BroadcastStateFactoryImpl">
+		<constructor-arg>
+			<map>
+				<entry key="SendPending" value-ref="sendPending"></entry>
+				<entry key="Sending" value-ref="sending"></entry>
+				<entry key="Sent" value-ref="sent"></entry>
+				<entry key="SendInterrupted" value-ref="sendInterrupted"></entry>
+				<entry key="Sallbackpending" value-ref="callbackPending"></entry>
+				<entry key="Callbacking" value-ref="callbacking"></entry>
+				<entry key="Callbacked" value-ref="callbacked"></entry>
+				<entry key="CallbackInterrupted" value-ref="callbackInterrupted"></entry>
+				<entry key="InEden" value-ref="inEden"></entry>
+
+			</map>
+		</constructor-arg>
+	</bean>
+
+</beans>

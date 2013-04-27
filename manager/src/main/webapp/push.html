@@ -1,0 +1,318 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>push notification</title>
+	<link rel="stylesheet" type="text/css" href="css/style.css">
+	<link rel="stylesheet" type="text/css" href="css/custom-theme/jquery-ui-1.8.14.custom.css">
+	<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script>
+	<script type="text/javascript" src="js/jquery-ui-1.8.14.custom.min.js"></script>
+	<script type="text/javascript" src="js/jquery.form.js"></script>
+	<script type="text/javascript" src="js/MathQuestion.js"></script>
+	<script type="text/javascript" src="js/jquery.validate.min.js"></script>
+	<script type="text/javascript" src="js/jquery.paginator.1.0.0.M1.js"></script>
+	<script type="text/javascript" src="js/jquery.simpletable.js"></script>
+	<script type="text/javascript" src="js/jquery.history.js"></script>
+	<style type="text/css">
+		input{
+			-webkit-border-radius: 10px;
+			-moz-border-radius: 5px;
+			border-radius: 5px;
+			padding:4px;
+			font-size:14px;
+		}
+		textarea{
+			-webkit-border-radius: 10px;
+			-moz-border-radius: 5px;
+			padding:4px;
+			border-radius: 5px;
+			font-size:14px;
+		}
+		.field{
+			font-size:16px;
+			font-weight:bold;
+		}
+		.button{
+			float:right;
+		}
+		.button_dis{
+			float:right;
+			background-color:#999;
+		}
+		.remain{
+			font-size:18px;
+			font-style:italic;
+		}
+		#question {
+			color:blue;
+			font-size:18px;
+			font-family: '宋体',Verdana,Arial,Sans-Serif;
+		}
+		#review {
+			color:red;
+			font-size:15px;
+			font-family: Georgia;
+		}
+		.title {
+			margin-right: 300px;
+			height:25px;
+			background:#99a;
+			color:white;
+			font-family:黑体;
+		}
+	</style>
+<script type="text/javascript">
+var mathQuestion = new MathQuestion();
+$(function(){
+		var checkRemain = function(){
+			var subjectLen=encodeURIComponent($("#subject").val()).length;
+			var total=176;
+			var leftCount=total-subjectLen;
+			$(".remain").html(leftCount);
+			if(leftCount<0){
+				$(".remain").css("color","red")
+				$("#button").attr("class","button_dis");
+				$("#button").attr("disabled","disabled");
+			}else{
+				$("#button").attr("class","button");
+				$("#button").removeAttr("disabled");
+				$(".remain").css("color","black")
+			}
+		}
+		$("#subject").keydown(function(){
+			checkRemain();
+		});
+		$("#subject").keyup(function(){
+			checkRemain();
+		});
+		$("#subject").change(function(){
+			checkRemain();
+		});
+		$("#math").dialog({
+			title: "确认提交",
+			width: "300px",
+			autoOpen:false,
+			modal: true,
+			 buttons: [
+			    {
+			        text: "Cancel",
+			        click: function() { $(this).dialog("close"); }
+			    },
+			    {
+			        text: "Ok",
+			        click: function() {
+			       		var answer = eval($("#answer").val());
+			       		if(answer!=mathQuestion.key()){
+			       			$("#review").html("错咯！");
+			       			return;
+			       		}
+			       		targetFunc();
+			        }
+			    }
+			]
+		});
+		$(".button").click(function(){
+			if($("#sendForm [name=action]").val()==""){
+				$("#sendForm [name=action]").focus();
+				return;
+			}
+			if($("#sendForm [name=subject]").val()==""){
+				$("#sendForm [name=subject]").focus();
+				return;
+			}
+			targetFunc = newJournal;
+			confirmMathDialog();
+		})
+		$("#answer").focus(function(){
+			$("#review").html("");
+		})
+		
+		$(".pages").paginator({
+            total:true,
+            currentPageId:0,
+            hashTag: "" 
+		});
+		
+		$("#dataList").simpleTable({
+            cols:[
+				"subject",
+				"date",
+				function(data){
+					return "发 : "  + (data.sendFinishedDate ? data.sendFinishedDate:"--") + "<br/>召 : " + (data.callbackFinishedDate ? data.callbackFinishedDate : "--");
+				},
+				function(data){
+					return data.status.name;				
+				},
+				function(data){
+					if(data.status=="callbacked"||data.status=="sent"){
+						return "已完成";
+					}
+					var stat = data.sent + "/" + data.toBeSent + "<br/>" + data.callbacked + "/" + data.toBeCallbacked;
+					return stat;
+				},
+				"operator",
+                function(data){
+                	var htm = '无';
+                	var commands = data.status.availableCommands;
+                	if(commands&&commands.length>0){
+                		htm = '';
+						for(var i in commands){
+							htm += "<a href='javascript:void(0)' onclick=\"runCommand('"+data.id+"','"+commands[i]+"')\">"+commands[i]+"</a>&nbsp;&nbsp;";
+						}                		
+                	}
+					return htm;
+                }
+            ]
+		});
+		$.history.init(function(hash){
+        	onPage(hash);
+		}, {unescape: ",/"});
+		
+});
+var page_id = 0;
+var targetFunc;
+function onPage(hash){
+	    var pageNumber = 1;
+	    var match = hash.match(/\!\/(\d+)/);
+	    if(match){
+	            $("#search").val(match[1]);
+	            page_id = match[0];
+	            console.log(page_id)
+	    }else{
+	            page_id =  1;
+	    }
+	    $(".pages").paginator("hashTag", hashTag());
+	    loadData();
+}
+function loadData(){
+		var param = new Array();
+        param.push({name: "offset", value: (page_id - 1) * 20});
+        param.push({name: "limit",  value: 20});
+		$.ajax({
+			url: "api/broadcast",
+			data: param,
+            dataType: "json",
+			type: "get",
+			success: function(resp){
+				console.log(resp.result);
+				$(".pages").paginator("totalRecords", resp.total).paginator("selectPage", page_id);
+				$("#dataList").simpleTable("fillData", resp.result);
+			}
+		});
+}
+function hashTag(){
+        return "!/" + "/__id__";
+}
+function newJournal(){
+		var data = {
+			subject: $("#sendForm [name=subject]").val(),
+			action: $("#sendForm [name=action]").val()
+		};
+		$.ajax({
+			url: "api/broadcast",
+			type: "post",
+			contentType: "application/json",
+			data: JSON.stringify(data),
+			dataType: "json",
+			success: function(resp){
+				loadData();
+				$("#sendForm [name=subject]").val("")
+				$("#sendForm [name=action]").val("")
+				$("#math").dialog("close");
+			}
+		});
+}
+var cur_id;
+var cur_command;
+function runCommand(id,command){
+	cur_id = id;
+	cur_command = command;
+	targetFunc = submitUpdate;
+	confirmMathDialog();
+}
+function submitUpdate(){
+	$.ajax({
+			url: "api/broadcast/"+cur_id+"/command",
+			type: "post",
+			contentType: "application/json",
+			data: cur_command,
+			dataType: "json",
+			success: function(resp){
+				loadData();
+				$("#math").dialog("close");
+			}
+	});
+}
+function confirmMathDialog(){
+	$("#answer").val("");
+	var content = mathQuestion.pick()+" = ";
+	$("#question").html(content);
+	$("#math").dialog("open");
+}
+</script>
+</head>
+<body>
+<header> <a class="logo"></a> </header>
+<!--#include virtual="./menu.html" -->
+<div class="wrap">
+		<h2 class="title">消息发布</h2>
+		<div style="width:700px">
+		   <form id="sendForm">
+	    	<label>
+	            <span class="field">链接:</span>
+	       </label>
+	       <input id="action" name="action" type="text" size="65" placeholder="填写链接"/>
+	       <br><br>
+	       <label>
+	           <span class="field">标题:</span>
+	       </label>
+	       <textarea id="subject" name="subject" style="vertical-align: top" rows=8 cols=74 placeholder="填写提醒标题"></textarea>&nbsp;&nbsp;<span id="leftwords">剩余<span class="remain">176</span>字节</span>
+			<br><br>
+			<div style="width:600px;">
+				<br>
+	       		<button class="button" id="button" type="button">发送</button>
+	       	</div>
+	       	</form>
+       	</div>
+    <br><br><br>
+    <h2 class="title">历史记录</h2>
+    <div class="table">
+						<table id="dataList" width="100%" border="0" cellspacing="0" cellpadding="0">
+								<thead>
+										<tr>
+												<td>标题</td>
+												<td>发布时间</td>
+												<td>结束时间</td>
+												<td>状态</td>
+												<td>统计</td>
+												<td>操作人</td>
+												<td>操作</td>
+										</tr>
+								</thead>
+								<tbody>
+										<tr>
+											<td colspan="7">Loading...</td>
+										</tr>
+								</tbody>
+								<tfoot>
+										<tr>
+												<td>标题</td>
+												<td>发布时间</td>
+												<td>结束时间</td>
+												<td>状态</td>
+												<td>统计</td>
+												<td>操作人</td>
+												<td>操作</td>
+										</tr>
+								</tfoot>
+						</table>
+						<div class="pages"> <span class="num">共3页，27个项目</span> <span class="pagelinks"> <a href="" class="first disable">首页</a> <a href="" class="prev disable">上页</a> <span class="pageinput">第
+								<input value="1" />
+								页</span> <a href="" class="next">下页</a> <a href="" class="last">尾页</a> </span> </div>
+				</div>
+</div>
+<div id="math" align="center">
+<span id="question"></span>&nbsp;<input type="number" size=5 id="answer">&nbsp;&nbsp;<span id="review"></span>
+</div>
+</body>
+</html>

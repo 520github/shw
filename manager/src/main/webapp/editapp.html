@@ -1,0 +1,274 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>编辑列表</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<link rel="stylesheet" type="text/css" href="css/custom-theme/jquery-ui-1.8.14.custom.css">
+<link rel="stylesheet" type="text/css" href="css/pagination.css">
+<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.14.custom.min.js"></script>
+<script type="text/javascript" src="js/jquery.validate.min.js"></script>
+<script type="text/javascript" src="js/jquery.paginator.1.0.0.M1.js"></script>
+<script type="text/javascript" src="js/jquery.simpletable.js"></script>
+<script type="text/javascript" src="js/jquery.history.js"></script>
+<script type="text/javascript" src="js/json2.js"></script>
+<script type="text/javascript" src="js/jquery.xeditor.js"></script>
+<script language="javascript">
+var page_id = 0;
+var catalog = "";
+
+function loadData(){
+		var param = new Array();
+		param.push({name: "search", value: $("#search").val()});
+		param.push({name: "offset", value: (page_id - 1) * 20});
+		param.push({name: "limit",  value: 20});
+		param.push({name: "catalog", value: catalog});
+		$.ajax({
+			url: "api/app/processed/",
+			data: param,
+			dataType: "json",
+			type: "get",
+			success: function(resp){
+				$(".pages")
+					.paginator("totalRecords", resp.total)
+					.paginator("selectPage", page_id)
+					.paginator("redraw");
+                                $("#dataList").simpleTable("fillData", resp.result);
+                                $(".intro .inside").empty();
+			}
+		});
+}
+
+function hashTag(){
+	return "!/" + encodeURIComponent(catalog) + "/" + encodeURIComponent($("#search").val()) + "/__id__";
+}
+
+function remove(appId){
+	$("#removeDialog")
+		.data("appId", appId)
+		.dialog("open");
+}
+
+function edit( appId ){
+        $(document).xeditor("edit", appId);
+}
+
+$(document).ready(function(){
+	$(".pages").paginator({
+		total:true,
+		hashTag: hashTag() 
+	});
+
+	$("#dataList").simpleTable({
+		cols:[
+			"id", 
+							function(data){
+                                return '<a href="' + data.detail.url + '" target="_blank">' + data.detail.name + '</a>';
+                       		},
+							function(data){
+								return data.catalog==null ?"": data.catalog.join(";");
+							},
+							function(data){
+								var htm = '<ul class="rowUl">';
+								for(var d in data.applicationMarketDetails){
+									var u=((data.applicationMarketDetails[d].webUrl)?data.applicationMarketDetails[d].webUrl:data.applicationMarketDetails[d].url);
+									htm+='<li><a target="_blank" href="'+u+'">'+d+'</a>';
+									if(data.detail.market==d){
+										htm+='<b>&nbsp;√</b>';
+									}
+									htm+='</li>';
+								}
+								htm+='</ul>'
+								return htm;
+							},
+							function(data){
+								var htm = '<ul class="rowUl">';
+								for(var d in data.applicationMarketDetails){
+									htm+='<li>'+data.applicationMarketDetails[d].version+'</li>';		
+								}
+								htm+='</ul>'
+								return htm;
+							},
+							function(data){
+								var htm = '<ul class="rowUl">';
+								for(var d in data.applicationMarketDetails){
+									htm+='<li>'+data.applicationMarketDetails[d].lastUpdate+'</li>';		
+								}
+								htm+='</ul>'
+								return htm;
+							},
+							function(data){
+								var htm = '<ul class="rowUl">';
+								for(var d in data.applicationMarketDetails){
+									htm+='<li>'+data.applicationMarketDetails[d].wholeVersionScore.vote+"/"+data.applicationMarketDetails[d].wholeVersionScore.star+'</li>';		
+								}
+								htm+='</ul>'
+								return htm;
+							},
+							'status',
+							function(data){
+								if(data.status != 'refused'){
+									return '编辑 | 删除';
+								}
+								else{
+									return '<a href="javascript:void(0);" onclick="edit(\'' + data.id + '\')">编辑</a>  | <a href="javascript:void(0);" onclick="remove(\'' + data.id + '\')")>删除</a>';
+								}
+							}
+		]
+	});
+
+	$.history.init(function(hash){
+		onPage(hash);
+	}, {unescape: true}); 
+
+	$("#searchForm").submit(function(){
+		location.href="#!/" + encodeURIComponent(catalog) + "/" + encodeURIComponent($("#search").val()) + "/1";
+	});
+
+        $(document).xeditor({
+                appUrl: "api/app/processed/{id}",
+                lockUrl: false,
+		note: "disable" 
+        });
+
+	$.ajax({
+		url:"api/catalog/",
+		type: "get",
+		dataType: "json",
+		success: function(resp){
+	                $("#catalogFilter").empty();
+			$("#catalogFilter").append('<option value="" selected>所有分类</option>');
+			for(var i = 0; i < resp.result.length; i++){
+				var cat = resp.result[i];
+				$("#catalogFilter").append('<option>' + cat["name"] + '</option>');
+				if(catalog == cat["name"]){
+					$("#catalogFilter").val(cat["name"]);
+				}
+			}
+		}
+	});
+
+
+	$("#catalogFilter").change(function(){
+		catalog = $(this).val();
+		$.history.load(hashTag().replace("__id__", page_id));
+	});
+	$("#removeDialog").dialog({
+		title:"删除",
+		autoOpen: false,
+		modal: true,
+		buttons:{
+			"删除":function(){
+				var appId = $(this).data("appId");
+				$.ajax({
+					url: "api/app/processed/" + appId,
+					type: "delete",
+					dataType: "json",
+					success: function(resp){
+						if($("#xeditor").dialog("isOpen")){
+							$("#xeditor").dialog("close");
+						}
+						loadData();
+					},
+					error: function(jqXHR, textStatus, errorThrown){
+						if(jqXHR.status == 409){
+							alert('这个App已经被其他编辑锁定。');
+						}
+						else{
+							alert('加载数据出错，请稍后再试。');
+						}
+					}
+				});
+				$(this).dialog("close");
+			},
+			"取消":function(){
+				$(this).dialog("close");
+			}
+		}
+	});
+});
+
+
+function onPage(hash){
+	var pageNumber = 1;
+	var match = hash.match(/\!\/(.*)\/(.*)\/(\d+)/);
+	if(match){
+		catalog = decodeURIComponent(match[1]);
+		$("#search").val(decodeURIComponent(match[2]));
+		page_id = match[3];
+	}
+	else{
+		catalog = "";
+		page_id =  1;
+	}
+
+	$(".pages")
+		.paginator("hashTag", hashTag());
+
+        $("#catalogFilter").val(catalog);
+
+	loadData();
+}
+</script>
+</head>
+
+<body id="processed">
+<header> <a class="logo"></a> </header>
+<!--#include virtual="./menu.html" -->
+<div class="wrap">
+		<h2 class="title"><a href="">应用管理</a> > 编辑列表</h2>
+		<div class="search cf">
+						<form id="searchForm">
+						<input id="search" class="input" placeholder="在这里搜索" />
+						<input type="submit" id="searchButton"  class="submit button" value="搜索" />
+						
+										<select id="catalogFilter">
+												<option value="">二级分类</option>
+										</select>
+						</form>
+		</div>
+		
+		
+		
+		
+				<div class="table">
+						<table id="dataList" width="100%" border="0" cellspacing="0" cellpadding="0">
+								<thead>
+										<tr>
+												<th>ID</th>
+												<td>名称</td>
+												<td>分类</td>
+												<td>市场</td>
+												<td>版本</td>
+												<td>最后更新</td>
+												<td>星/票</td>
+												<td>状态</td>
+												<td>操作</td>
+										</tr>
+								</thead>
+								<tbody>
+										<tr><td colspan="6">Loading...</td></tr>
+								</tbody>
+								<tfoot>
+										<tr>
+												<th>ID</th>
+												<td>名称</td>
+												<td>分类</td>
+												<td>市场</td>
+												<td>版本</td>
+												<td>最后更新</td>
+												<td>星/票</td>
+												<td>状态</td>
+												<td>操作</td>
+										</tr>
+								</tfoot>
+						</table>
+						<div class="pages"></div>
+				</div>
+</div>
+<div id="removeDialog">
+<p>确定要删除这个App吗？删除后就再找回来就比较麻烦了哦。</p>
+</div>
+</body>
+</html>

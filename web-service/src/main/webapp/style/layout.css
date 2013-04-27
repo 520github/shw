@@ -1,0 +1,38 @@
+@charset "utf-8";
+/* css reset */
+html{color:#000;background:#FFF;}
+body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,textarea,p,blockquote,th,td{margin:0;padding:0;}
+table{border-collapse:collapse;border-spacing:0;}
+fieldset,img{border:0;}
+address,caption,cite,code,dfn,em,strong,th,var{font-style:normal;font-weight:400;}
+li{list-style:none;}
+caption,th{text-align:left;}
+h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:400;}
+q:before,q:after{content:'';}
+abbr,acronym{border:0;font-variant:normal;}
+sup{vertical-align:text-top;}
+sub{vertical-align:text-bottom;}
+input,textarea,select{font-family:inherit;font-weight:inherit;font-size:100%;}
+legend{color:#000;}
+.clearfix:after{content:".";display:block;height:0;clear:both;visibility:hidden;}
+.clearfix{*zoom:1;}
+
+
+body{font:300 14px/22px "微软雅黑", Arial, Helvetica, sans-serif;color:#333;background:url(../images/bg_pic_02.png) repeat 0 0;}
+a{font-size:12px;color:#135c7d;text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/*------------ layout---------------*/
+.logo{width:445px;height:118px;background:url(../images/text.png) no-repeat 0 20px; text-indent:-9999px; position:relative}
+.logo a{display:block;width:173px;height:88px;top:20px;left:0;position:absolute;}
+.wrap{width:894px;margin:0 auto;}
+.content_top{ display:block;width:894px;height:25px;background:url(../images/slide_bg_pic.png) no-repeat 0 0;}
+.content_bottom{height:30px;background-position:0 -19px;}
+.content{width:834px;background:url(../images/slide_bg_pic.png) repeat-y -894px 0;_background:url(../images/slide_bg_pic.png) repeat-y -893px 0; padding: 0 0 10px 60px; overflow:hidden;}
+.top{width:100%;min-height:394px;background:url(../images/bg_pic.jpg) repeat-x 0 0;}
+.bottom{width:100%; height:15px;background:url(../images/bg_pic02.jpg) repeat-x 0 0;overflow:hidden;}
+.footer{width:849px;margin:0 auto;line-height:30px;}
+.footer span{float:left;}
+.footer {color: #999999;height: 60px;margin: 0 auto;padding: 10px 0 0;width: 894px;}
+.footer a{float:right;margin:0 6px;color:#66a0b3;text-shadow: 1px 1px 0 #cfe9f2;}
+

@@ -1,0 +1,90 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>登录</title>
+<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script>
+<script type="text/javascript" src="js/jquery.form.js"></script>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<style>
+login {
+	padding: 0;
+	margin:5% auto 0;
+	border:1px solid #d3d3d3;
+	display:block;
+	width:400px;
+	border-radius:5px;
+	box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+}
+
+error {
+	color:#aa0000;
+	display:block;
+	text-align:center;
+	height:20px;
+	margin:0;
+	padding:0;
+}
+
+h1 {
+	margin:0;
+	padding:15px;
+	font-size:16px;
+	display:block;
+	border-bottom:1px solid #e0e0e0;
+	text-shadow: 1px 1px 1px #fff; 
+	background:-webkit-gradient(
+		linear,
+		left bottom,
+		left top,
+		color-stop(0, #ededed),
+		color-stop(0.8, #e8eaeb) 
+	);
+	border-top-left-radius:5px;
+	border-top-right-radius:5px;
+}
+
+form {	
+	margin:30px 50px 50px 50px;
+}
+
+form input[type=text],form input[type=password], input[type=submit]{
+	display:block;
+	margin:10px auto;
+	padding:7px;
+	width:300px;
+}
+
+input[type="submit"]{
+	height:50px;
+	width:314px;
+}
+</style>
+<script lanuage="javascript">
+$(document).ready(function(){
+	$("form").ajaxForm({
+		dataType:"json",
+		success: function(response, statusText, xhr, form){
+			window.location.href="index.html";			
+		},
+		error: function(){
+			$("error").text("登录失败，用户名或密码不正确。");
+		}		
+	});
+});
+</script>
+</head>
+
+<body>
+<login>
+	<h1>珊瑚湾内容管理系统</h1>
+    <form action="j_spring_security_check" method="POST">
+    	<error></error>    
+    	<input name="j_username" type="text" placeholder="用户名" max="128" autofocus/>
+        <input name="j_password" type="password" placeholder="密码" min="6" max="32" />        
+	<input name="_spring_security_remember_me"  type="checkbox"/><label for="_spring_security_remember_me">记住密码</label>
+        <input type="submit" value="登录"/>
+    </form>
+</login>
+</body>
+</html>

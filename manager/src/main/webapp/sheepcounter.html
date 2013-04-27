@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>资源链接维护</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script>
+<script type="text/javascript" src="js/jquery.tmpl.min.js"></script>
+<style>
+ul li {float:left;margin: 8px 0 0 0;line-height: 22px;}
+.clearfix:after {
+	content: ".";	
+	display: block;
+	height: 0;
+	clear: both;
+	visibility: hidden;
+}
+body {
+	font: 300 14px/22px "微软雅黑", Arial, Helvetica, sans-serif;
+	color: #333;
+}
+.contentbox{
+	margin:auto;
+	font-size:18px
+}
+.contentbox .key{
+	font: 300 16px/22px "微软雅黑", Arial, Helvetica, sans-serif;
+	color: #333;
+	font-weight: 700;
+}
+.contentbox .value{
+	font: 300 16px/22px "微软雅黑", Arial, Helvetica, sans-serif;
+}
+h3 {
+	display: block;
+	font-size: 1.17em;
+	-webkit-margin-before: 1em;
+	-webkit-margin-after: 1em;
+	-webkit-margin-start: 0px;
+	-webkit-margin-end: 0px;
+	font-weight: bold;
+}
+.content_top {
+	display: block;
+	width: 894px;
+	height: 20px;
+}
+.pic_box {
+	width: 760px;
+	padding: 10px 0;
+	overflow-x: auto;
+	overflow-y: hidden;
+}
+
+.loading{
+	display:none;
+	width:500px;
+	padding:80px;
+}
+.loading img{
+	padding:47px;
+}
+.loading label{
+	font-size:21px;
+	color:#7c7c7e;
+}
+.error{
+	display:none;
+	width:500px;
+	padding:50px;
+}
+.error label{
+	color:red;
+	font-size:20px
+}
+.error p{
+	padding:10px;
+	font-size:17px;
+}
+#appurl{
+	width:150px
+}
+#markup{
+	display:none
+}
+</style>
+<script lanuage="javascript">
+
+$(function(){
+		$("#addBtn").click(function(){
+			var sheepName = $("#sheepName").val();
+			if(!sheepName){
+				$("#sheepName").focus();
+				return ;
+			}
+			$("#sheepName").val('');
+			var ourl = {name:sheepName,url:"http://itunes.apple.com/cn/app//id479467027?mt=8"}
+			console.log(ourl)
+			$.ajax({
+				url:"/api/sheepcounter",
+				contentType: "application/json",
+				data: JSON.stringify(ourl),
+				dataType: "json",
+		    	type: "put",
+		    	sync:false,
+		    	success: function(resp,status){
+		    		var directUrl = 'http://www.shanhubay.com/marketing/sheep-counter/'+resp.id
+		    		var html='<label class="key">资源名称 :</label> <label class="value">'+resp.name+'</label><br><label class="key">监控链接：</label> <label class="value"><a href="'+directUrl+'" target="_blank">'+directUrl+'</a></label><br>';
+		    		$(".contentbox").html(html);
+		    	},
+		    	error: function(){
+		    		
+				}
+			});			
+		})
+})
+
+</script>
+</head>
+
+<body>
+<header> <a class="logo"></a> </header>
+<!--#include virtual="./menu.html" -->
+<div class="wrap">
+		<h2 class="title"><a href="">资源监控链接</a> > 资源链接添加</h2>
+		<div class="search cf">
+			<input id="sheepName" class="input" placeholder="输入资源名称" />
+			<button class="submit button" id="addBtn">增加</button>
+			<br>
+		</div>
+		<div class="loading">
+			<img id="loadingimg" src="images/loading.gif"><br>
+			<label>正在提交，请稍候</label>
+		</div>
+		
+		<div class="error" id="error">
+			<label>提交失败！</label>
+		</div>
+		
+		
+		<div class="content_top"></div>
+        <div class="contentbox">
+        	
+        </div>
+        <!--********content*******-->
+        
+        <div class="content_top content_bottom"></div>
+</div>
+</body>
+</html>

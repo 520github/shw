@@ -1,0 +1,224 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>应用抓取</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script>
+<script type="text/javascript" src="js/jquery.tmpl.min.js"></script>
+<style>
+ul li {float:left;margin: 8px 0 0 0;line-height: 22px;}
+.clearfix:after {
+	content: ".";	
+	display: block;
+	height: 0;
+	clear: both;
+	visibility: hidden;
+}
+body {
+	font: 300 14px/22px "微软雅黑", Arial, Helvetica, sans-serif;
+	color: #333;
+}
+.contentbox{
+	margin:auto;
+	display:none
+}
+h3 {
+	display: block;
+	font-size: 1.17em;
+	-webkit-margin-before: 1em;
+	-webkit-margin-after: 1em;
+	-webkit-margin-start: 0px;
+	-webkit-margin-end: 0px;
+	font-weight: bold;
+}
+.content_top {
+	display: block;
+	width: 894px;
+	height: 20px;
+}
+.pic_box {
+	width: 760px;
+	padding: 10px 0;
+	overflow-x: auto;
+	overflow-y: hidden;
+}
+
+.loading{
+	display:none;
+	width:500px;
+	padding:80px;
+}
+.loading img{
+	padding:47px;
+}
+.loading label{
+	font-size:21px;
+	color:#7c7c7e;
+}
+.error{
+	display:none;
+	width:500px;
+	padding:50px;
+}
+.error label{
+	color:red;
+	font-size:20px
+}
+.error p{
+	padding:10px;
+	font-size:17px;
+}
+#appurl{
+	width:500px
+}
+#markup{
+	display:none
+}
+</style>
+<script lanuage="javascript">
+
+function App(url){
+	var markup = $("#markup").html();
+	$(".loading").css({display:"block"});
+	$(".error").css({display:"none"});
+	$(".contentbox").css({display:"none"})
+	$.ajax({
+		url:"/api/app/catcher",
+		dataType: "json",
+		data:url,
+    	type: "put",
+    	sync:false,
+    	success: function(resp,status){
+    		fillData(resp);
+    	},
+    	error: function(){
+    		$(".loading").slideUp();
+			$("#error").fadeIn();
+		}
+	});
+	function fillData(data){
+		if(data.catalog){
+			data.catalog = data.catalog.join(" ");
+		}
+		if(!data.wholeVersionScore){
+				data.wholeVersionScore = {"star":0,"vote":0};
+				data.star = 0;
+				data.vote = 0; 
+		}else{
+				data.star = data.wholeVersionScore.star/5*75;
+				data.vote = data.wholeVersionScore.vote;
+		}
+		$.template( "appTemplate", markup );
+		$(".contentbox").html($.tmpl( "appTemplate", data));
+		//console.log($.tmpl( "appTemplate", data));
+		if(data.screenshotsForPhone){
+			var html = "";
+			var i = 0
+			for(i in data.screenshotsForPhone){
+				html += "<img src='"+data.screenshotsForPhone[i]+"' />&nbsp;&nbsp;";
+			}
+			$(".pics").html(html);
+			$(".pics").css("width",234*(i+1))
+		}
+		$(".contentbox .article").html($(".contentbox .article").text());
+		$(".loading").slideUp();
+		$(".contentbox").slideDown();
+	}
+}
+
+$(function(){
+		$("#catchBtn").click(function(){
+			var url = $("#appurl").val();
+			if(!url){
+				$("#appurl").focus();
+				return;
+			}
+			var app = new App(url);			
+		})
+})
+
+</script>
+</head>
+
+<body>
+<header> <a class="logo"></a> </header>
+<!--#include virtual="./menu.html" -->
+<div class="wrap">
+		<h2 class="title"><a href="">应用管理</a> > 应用自助抓取</h2>
+		<div class="search cf">
+			<input id="appurl" class="input" placeholder="输入的url链接必须是指向中国itunes应用详情的网页" />
+			<button class="submit button" id="catchBtn">抓取</button>
+			<br>
+		</div>
+		<div class="loading">
+			<img id="loadingimg" src="images/loading.gif"><br>
+			<label>小哥，等我去去就来...</label>
+		</div>
+		
+		<div class="error" id="error">
+			<label>抓取失败：<p></p><p>1、确保“输入的url链接必须是指向中国itunes应用详情的网页”。</p><p>2、服务器网络问题，稍后重新抓取。</p></label>
+		</div>
+		
+		
+		<div class="content_top"></div>
+        <div class="contentbox">
+        
+        </div>
+        <!--********content*******-->
+        
+        <div class="content_top content_bottom"></div>
+</div>
+<div id="markup">
+        <hr style="float:left;width:600px">
+        <br>
+          <dl class="clearfix">
+          	<dt>
+          	<h2>${name}</h2>
+          	<br>
+            </dt>
+            <dd>
+            <img src="${logo}" />
+            <h3>${introduction}</h3>
+            <ul class="clearfix">
+             <li>价格：</li><li>${price}</li>
+            </ul>
+            <ul class="clearfix">
+             <li>分类：</li><li>${catalog}</li>
+            </ul>
+            <ul class="clearfix">
+             <li>大小：</li><li>${size}</li>
+            </ul>
+            <ul class="clearfix">
+             <li>更新：</li><li>${lastUpdate}</li>
+            </ul>
+            <ul class="clearfix">
+             <li>当前版本：</li><li>${version}</li>
+            </ul>
+            <ul class="clearfix">
+             <li>评分：</li><li><div class="star"><i style="width:${star}px;"></i></div>${vote}份评分</li>
+            </ul>
+            <ul class="clearfix">
+             <li>语言：</li><li>${language}</li>
+            </ul>
+            <ul class="clearfix">
+             <li>开发商：</li><li>${publisher}</li>
+            </ul>
+            <ul class="clearfix">
+             <li>系统要求：</li><li>${requirement}</li>
+            </ul>
+            </dd>
+          </dl>
+          
+          <h4 class="h4_title02"><i>简介</i></h4>
+          <p class="article">${originalDescription}</p>
+          
+          <h4 class="h4_title03"><i>屏幕截图</i></h4>
+          
+          <div class="pic_box">
+          	<div class="pics" style=""><!--******************************这里需要对宽度赋值的:style="width:x;"**************************-->
+           </div>
+          </div>
+</div>
+</body>
+</html>

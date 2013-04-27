@@ -1,0 +1,367 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>品牌管理</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<link rel="stylesheet" type="text/css" href="css/custom-theme/jquery-ui-1.8.14.custom.css">
+<link rel="stylesheet" type="text/css" href="css/pagination.css">
+<link rel="stylesheet" type="text/css" href="css/jquery.tagit.css">
+<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script>
+<script type="text/javascript" src="js/jquery.form.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.14.custom.min.js"></script>
+<script type="text/javascript" src="js/jquery.validate.min.js"></script>
+<script type="text/javascript" src="js/jquery.paginator.1.0.0.M1.js"></script>
+<script type="text/javascript" src="js/jquery.simpletable.js"></script>
+<script type="text/javascript" src="js/jquery.history.js"></script>
+<script type="text/javascript" src="js/json2.js"></script>
+<script type="text/javascript" src="js/jquery.xeditor.js"></script>
+<script type="text/javascript" src="js/tag-it.js"></script>
+<style>
+#editor li img {
+	margin-right:20px;
+}
+</style>
+<script lanuage="javascript">
+var page_id = 0;
+var catalog = "";
+var availableTags = new Array();
+
+function loadData(){
+                $.ajax({
+                        url: "api/brand/",
+                        dataType: "json",
+                        type: "get",
+                        success: function(resp){
+                                $("#dataList").simpleTable("fillData", resp);
+                                $(".intro .inside").empty();
+                        }
+                });
+}
+function hashTag(){
+        return "!/" + $("#search").val() + "/" +  encodeURIComponent(catalog)  + "/__id__";
+}
+
+function togglePublish( id, enabled){
+	$("#enableDialog")
+		.data("id", id)
+		.data("enabled", enabled)
+		.dialog("open");
+}
+
+function openEdit(brand){
+	$("#fileName").text("");
+	if( brand ){
+		$("#editor [name=id]").val(brand.id);
+		$("#editor [name=name]").val(brand.name);
+		$("#editor [name=icon]").val(brand.icon);
+		$("#editor [name=weight]").val(brand.weight);
+		$("#editor").data("id", brand.id);
+	}
+	else{
+		$("#editor [name=id]").removeAttr("value");
+		$("#editor [name=name]").removeAttr("disabled");
+		$("#editor form")[0].reset();
+		$("#editor [name=icon]").removeAttr("value");
+		$("#editor form children").tagit("removeAll");
+	}
+	
+	$("#editor").dialog("open");
+	
+}
+
+
+function edit( id ){
+	$.ajax({
+		url:"api/brand/" + id,
+		type: "get",
+		dataType: "json",
+		success: function(resp){
+			openEdit(resp);
+		}
+	});
+}
+
+function editorInit(){
+	$("#editor").dialog({
+		title: "编辑分类",
+		width: "350px",
+		autoOpen:false,
+		modal: true
+	});
+
+	$("#canelButton").click(function(){
+		$("#editor").dialog("close");
+	});
+	$("#saveButton").click(function(){
+		$("#brandForm").submit();
+	});
+	
+	$("#brandForm").validate({
+		rules:{
+			name: "required",
+			weight: "required",
+			icon: "required"
+		},
+		messages: {
+			name: "请添加品牌名称",
+			weight: "给个权重值吧。数字越大越靠前",
+			icon: "上传压缩包"
+		},
+		submitHandler: function(form){
+			var data = {
+				id:$("#brandForm [name=id]").val(),
+				name: $("#brandForm [name=name]").val(),
+				icon: $("#brandForm [name=icon]").val(),
+				weight:$("#brandForm [name=weight]").val()
+			};
+
+			$.ajax({
+				url: "api/brand",
+				type:"post",
+				contentType: "application/json",
+				data: JSON.stringify(data),
+				dataType: "json",
+				success: function(resp){
+					loadData();
+					$("#editor").dialog("close");
+				},
+				error: function(jqXHR, textStatus, errorThrown){
+						if(jqXHR.status == 409){
+							alert('品牌名称已存在，请更换名称');
+						}
+						else{
+							alert('提交数据出错，请稍后再试。');
+						}
+					}
+			});
+		}
+	});
+}
+
+function openView(id){
+	window.open ('http://static.shanhubay.com/android/client/brand/'+id,'phoneWin','height=460px,width=320,top=200,left=0,toolbar=no,menubar=no,scrollbars=no, resizable=no,location=no, status=no') 
+}
+$(document).ready(function(){
+        $(".pages").paginator({
+                total:true,
+                currentPageId:0,
+                hashTag: hashTag() 
+        });
+
+        $("#dataList").simpleTable({
+                cols:[
+			        "id",
+			        function(data){
+			        	return '<a href="javascipt:void(0)" onclick=openView("'+data.id+'")>'+data.name+'</a>';
+			        },
+					"weight",
+					"lastModified",
+					function(data){
+						return '<span class="sj' + (data.enabled ? '' : ' not') + '" onclick="togglePublish(\'' + data.id + '\', ' + data.enabled + ')"></span>';
+					},
+			        function(data){
+						if(data.enabled){
+							return '编辑 | 删除 | <a href="javascript:void(0)" onclick="updateNew(\'' + encodeURIComponent(data.id) + '\');">通知更新</a>';
+						}
+						else{
+							return '<a href="javascript:void(0)" onclick="edit(\'' + encodeURIComponent(data.id) + '\');">编辑</a> | <a href="javascript:void(0)" onclick="remove(\'' + encodeURIComponent(data.id) + '\');">删除</a> | 通知更新';
+						}
+			        }
+                ]
+        	}
+        );
+
+        $.history.init(function(hash){
+                onPage(hash);
+        }, {unescape: ",/"});
+
+	$("#createNew").click(function(){
+		openEdit();
+	});
+
+	editorInit();
+
+	$("#searchButton").click(function(){
+		$.history.load(hashTag().replace("__id__", 1));
+	});
+
+	$("#enableDialog").dialog({
+		title:"更改上下架状态",
+		autoOpen: false,
+		modal: true,
+		buttons:{
+			"更改":function(){
+				var id = $(this).data("id");
+				var enabled = $(this).data("enabled");
+				$.ajax({
+					url: "api/brand/" + encodeURIComponent(id) + "-"+!enabled,
+					type: "put",
+					contentType: "application/json",
+					data: '' + !enabled, 
+					success: function(){
+						loadData();
+					}
+				});
+				$(this).dialog("close");
+			},
+			"取消":function(){
+				$(this).dialog("close");
+			}
+		}
+	});
+	
+	$("#selectFileBtn").click(function(){
+		$("#file").click();
+	});
+	$("#file").change(function(){
+		uploadFile(this);
+	});
+});
+
+function uploadFile(obj){
+	var fileName=$(obj).val();
+	fileName=fileName.substring(fileName.lastIndexOf("\\")+1,fileName.length);
+	if(fileName.indexOf(".zip")==-1){
+		$("#selectFileBtn").next("span").text("是zip文件吗");	
+	}else{
+		var xhr = new XMLHttpRequest();
+		xhr.open("POST", "fileupload/brand", true);
+		xhr.onreadystatechange = function(){
+			if(this.readyState == 4 && this.status == 201){
+				$("#fileName").text(fileName);
+				$("#brandForm [name=icon]").val("fileupload/brand");
+				$("#selectFileBtn").next("span").text("");					
+			}else if(this.status == 413){
+				alert("文件有点大");
+			}
+		};
+		xhr.send(obj.files[0]);
+	}
+	var newFile=$(obj).clone(true).val("").change(function(){uploadFile(this);});
+	$(obj).after(newFile);
+	$(obj).remove();		
+}
+function onPage(hash){
+        var pageNumber = 1;
+        var match = hash.match(/\!\/(.*)\/(.*)\/(\d+)/);
+        if(match){
+                $("#search").val(match[1]);
+		catalog = match[2];
+                page_id = match[3];
+        }
+        else{
+                page_id =  1;
+        }
+        loadData();
+}
+
+
+function remove(id){
+	if(confirm("确定删除吗？")){
+		$.ajax({
+			url: "/api/brand/" + id,
+			type: "delete",
+			success: function(){
+				loadData();
+			}
+		});
+	}
+}
+function updateNew(id){
+	if(confirm("确定通知更新吗？")){
+		$.ajax({
+			url: "/api/brand/updateNew/" + id,
+			type: "put",
+			success: function(){
+				loadData();
+			}
+		});
+	}
+}
+function pushMsg(){
+	if(confirm("给所有品牌用户推送更新？")){
+		$.ajax({
+			url: "/api/brand/notice",
+			type: "post",
+			success: function(){
+				alert("已通知更新");
+			}
+		});
+	}
+}
+</script>
+</head>
+
+<body>
+<header> <a class="logo"></a> </header>
+<!--#include virtual="./menu.html" -->
+<div class="wrap">
+		<h2 class="title"><a href="">品牌管理</a></h2>
+			<div class="search cf">
+						<button class="button"  type="button" id="createNew">添加</button> &nbsp; &nbsp; &nbsp; &nbsp;
+						<button class="button"  type="button" id="pushMsg" onclick="pushMsg()">立即推送更新</button>
+			</div>
+				<div class="table">
+						<table id="dataList" width="100%" border="0" cellspacing="0" cellpadding="0">
+								<thead>
+										<tr>
+												<td>ID</td>
+												<td>品牌名称</td>
+												<td>权重</td>
+												<td>通知更新时间</td>
+												<td>上架</td>
+												<td>操作</td>
+										</tr>
+								</thead>
+								<tbody>
+										<tr>
+											<td colspan="7">Loading...</td>
+										</tr>
+								</tbody>
+								<tfoot>
+										<tr>
+												<td>ID</td>
+												<td>品牌名称</td>
+												<td>权重</td>
+												<td>通知更新时间</td>
+												<td>上架</td>
+												<td>操作</td>
+										</tr>
+								</tfoot>
+						</table>
+		  </div>
+				<div id="editor" class="popup_big cf" style="overflow:hidden">
+						<form id="brandForm" method="post"  >
+						<ul class="edit"><input type="hidden" name="id"/>
+								<li class="field"><label class="field">品牌名称</label>
+										<input name="name" size="15" maxlength="15" placeholder="品牌名称" disabled="disabled" />
+								</li>
+								<li class="field"><label class="field">权重</label>
+										<input name="weight" size="15" type="number" min="0" step="1"/>
+								</li>
+								<li class="field"><span id="fileName"></span><button id="selectFileBtn"  type="button" class="button">选择文件</button><span  style="color:#FF0000"></span>
+										<input type="file" name="file" id="file" style="visibility:hidden"/> 
+										<input type="hidden" name="icon" value="" />
+								<li class="buttons">
+										<button id="saveButton" type="button" class="button">保存</button>
+										<button id="canelButton" type="button" class="button">取消</button>
+								</li>
+						</ul>
+						</form>
+										
+				</div>
+				
+				<div class="delete">
+					<h4>确定要删除吗？</h4>
+					<button class="button">确定</button><button class="button">取消</button>
+				</div>
+				<div class="phoneView" style="display:none">
+				
+				</div>
+</div>
+<div id="enableDialog">
+	<p>确认要更改它的上下架状态吗？</p>
+</div>
+</body>
+</html>

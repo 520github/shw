@@ -1,0 +1,90 @@
+		<link rel="stylesheet" type="text/css" href="css/jquery.tagit.css">
+		<script type="text/javascript" src="js/tag-it.js"></script>
+				<div id="xeditor" class="popup_big cf">
+						<div class="table">
+								<table width="100%" border="0" cellspacing="0" cellpadding="0">
+										<thead>
+												<tr>
+														<th>ID</th>
+														<td>名称</td>
+														<td>版本</td>
+														<td>最近更新</td>
+														<td>票/星</td>
+												</tr>
+										</thead>
+										<tbody>
+												<tr>
+														<th>0001</th>
+														<td>天然物语</td>
+														<td>1.0.1</td>
+														<td>2012-04-12</td>
+														<td>4.4</td>
+												</tr>
+										</tbody>
+								</table>
+						</div>
+						<form id="appDesc" action="" method="put">
+						<ul class="edit">
+								<li class="field"><label class="field">应用分类<button type="button" class="button" id="catalogSelectBtn">选择</button></label>
+									<textarea readonly name="catalogSelect" id="catalogSelect"></textarea>
+								</li>
+								<li class="field"><label class="field">标签描述</label>
+										<input name="keywords" placeholder="四个词语" />
+								</li>
+								<li class="field"><label class="field">分组</label>
+										<input name="group" maxlength="15" size="15" placeholder="分组" />
+								</li>
+								<li class="field"><label class="field">一句话描述</label>
+										<input name="introduction" size="15" maxlength="15" placeholder="15个汉字" />
+								</li>
+								<li class="field"><label class="field">简介（new）</label>
+										<textarea name="description" placeholder="1500字节，纯文本" ></textarea>
+								</li>
+								<li class="field"><label class="field">推荐理由</label>
+										<textarea name="review" placeholder="80字节，纯文本" ></textarea>
+								</li>
+								<li class="buttons">
+										<button type="button" id="submitAndEditButton" class="button">提交审核并继续编辑</button>
+										<button type="button" id="submitButton" class="button">提交审核</button>
+										<button type="button" id="removeButton" class="button">删除</button>
+										<button type="button" id="approveButton" class="button">通过</button>
+										<button type="button" id="refuseButton" class="button">驳回</button>
+										<button type="button" id="cancelButton" class="button">取消</button>
+								</li>
+								<br>
+								<li class="field"><label class="field">备注</label>
+										<textarea name="note"></textarea>
+								</li>
+						</ul>
+						</form>
+						<div class="intro">
+								<h3>AppStore简介</h3>
+								<div class="inside">
+								</div>
+						</div>
+				</div>
+				<div class="delete">
+					<h4>确定要删除吗？</h4>
+					<button class="button">确定</button><button class="button">取消</button>
+				</div>
+				
+				<div class="catalog-checkbox" style="display:none">
+					<div class="buttons" style="text-align:right">
+						<button class="ok" >确定</button>
+						<button class="clear">清空</button>
+					</div>
+					<hr>
+					<div class="checkbox-div">
+					</div>
+				</div>
+				
+				<div class="brand-checkbox" style="display:none">
+					<div class="buttons" style="text-align:right">
+						<button class="ok" >确定</button>
+						<button class="clear">清空</button>
+					</div>
+					<hr>
+					<div class="checkbox-div">
+					
+					</div>
+				</div>

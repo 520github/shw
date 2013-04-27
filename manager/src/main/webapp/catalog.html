@@ -1,0 +1,654 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>分类管理</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<link rel="stylesheet" type="text/css" href="css/custom-theme/jquery-ui-1.8.14.custom.css">
+<link rel="stylesheet" type="text/css" href="css/pagination.css">
+<link rel="stylesheet" type="text/css" href="css/jquery.tagit.css">
+<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script>
+<script type="text/javascript" src="js/jquery.form.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.14.custom.min.js"></script>
+<script type="text/javascript" src="js/jquery.validate.min.js"></script>
+<script type="text/javascript" src="js/jquery.paginator.1.0.0.M1.js"></script>
+<script type="text/javascript" src="js/jquery.simpletable.js"></script>
+<script type="text/javascript" src="js/jquery.history.js"></script>
+<script type="text/javascript" src="js/json2.js"></script>
+<script type="text/javascript" src="js/jquery.xeditor.js"></script>
+<script type="text/javascript" src="js/tag-it.js"></script>
+<style>
+#editor li img {
+	margin-right:20px;
+}
+</style>
+<script lanuage="javascript">
+var page_id = 0;
+var catalog = "";
+var availableTags = new Array();
+
+function loadData(){
+                var param = new Array();
+		param.push({name: "search", value: $("#search").val()});
+                param.push({name: "offset", value: (page_id - 1) * 20});
+                param.push({name: "limit",  value: 20});
+                $.ajax({
+                        url: "api/catalog/?parent=" + catalog,
+                        data: param,
+                        dataType: "json",
+                        type: "get",
+                        success: function(resp){
+                                $(".pages")
+                                        .paginator("totalRecords", resp.total)
+					.paginator("selectPage", page_id);
+                                $("#dataList").simpleTable("fillData", resp.result);
+                                $(".intro .inside").empty();
+                        }
+                });
+}
+function hashTag(){
+        return "!/" + $("#search").val() + "/" +  encodeURIComponent(catalog)  + "/__id__";
+}
+
+function remove(name){
+	if(confirm("确定删除吗？")){
+		$.ajax({
+			url: "/api/catalog/" + name,
+			type: "delete",
+			success: function(){
+				loadData();
+			}
+		});
+	}
+}
+
+function togglePublish( name, enabled){
+	$("#enableDialog")
+		.data("name", name)
+		.data("enabled", enabled)
+		.dialog("open");
+}
+
+function openEdit( catalog ){
+	if( catalog ){
+		$("#editor [name=name]").val(catalog.name);
+		$("#editor [name=description]").val(catalog.description);
+		$("#editor [name=weight]").val(catalog.weight);
+		$("#editor [name=root]").attr("checked", catalog.root);
+		$("#editor [name=icon]").val(catalog.icon);
+		$("#editor [name=defaultView][value="+catalog.defaultView+"]").attr("checked",catalog.defaultView);
+		$("#editor [name=children]").tagit("removeAll");
+		if(catalog.children){
+			for(var i = 0; i < catalog.children.length; i++){
+				$("#editor [name=children]").tagit("createTag", catalog.children[i]);
+			} 
+		}
+		$("#iconImg").attr("src", catalog.icon);
+		$("#editor [name=tabViewCheckBox]").attr("checked",false);
+
+
+		function setViewConfig(id,view){
+			var checkid="#"+id+"checkbox";
+			var liid="#"+id+"li";
+
+			$(checkid).attr("checked",true);
+			$(liid+" [name=tabViewName]").val(view.name);
+			$(liid+" [name=defaultTabView]").attr("checked",view.defaultView);
+			$(liid+" [name=groupView]").attr("value",view.type);
+
+		}
+		
+
+		//回显分类视图编辑
+		if(typeof(catalog.view)!='undefined'){
+			for(var i=0;i<catalog.view.length;i++){
+				
+				if(catalog.view[i].name=="热门"){
+					setViewConfig("appfree",catalog.view[i]);
+				}else if (catalog.view[i].name=="新鲜"){
+					setViewConfig("app",catalog.view[i]);
+					
+				}
+				
+			}
+		}
+		if(catalog.defaultView=="applist"){
+			liToggle("applist");
+		}else{
+			liToggle("catalog");
+			
+		}
+
+		
+	}
+	else{
+		$("#editor [name=name]").removeAttr("disabled");
+		$("#editor form")[0].reset();
+		$("#editor [name=children]").tagit("removeAll");
+		$("#iconImg").removeAttr("src");
+		$("#editor [name=defaultView][value=applist]").attr("checked","checked");
+		var html = $("#iconImg").parent().html();
+		$("#iconImg").parent().html(html);//rebuild，for img‘s src unremove
+		$("#iconImg").click(function(){
+			$("[name=picFile]").click();
+			return false;
+		});
+		liToggle("applist");
+	}
+	$("[name=picFile]").change(function(){
+		var file = this.files[0];
+		var xhr = new XMLHttpRequest();
+		var upload = xhr.upload;
+		xhr.open("POST", "fileupload/catalog", true);
+		xhr.onreadystatechange = function(){
+			if(this.readyState == 4 && this.status == 201){
+				var obj = jQuery.parseJSON(this.responseText);
+				$("#iconImg")
+					.attr("src", "fileupload/catalog?r=" + Math.random());
+				$("[name=icon]").val("fileupload/catalog");
+			}
+			else{
+			}
+		};
+		xhr.send(file);
+	});
+
+
+	$("#editor").dialog("open");
+
+}
+
+function edit( catalogName ){
+	$.ajax({
+		url:"api/catalog/" + catalogName,
+		type: "get",
+		dataType: "json",
+		success: function(resp){
+			openEdit(resp);
+		}
+	});
+}
+
+function editorInit(){
+	$("#editor").dialog({
+		title: "编辑分类",
+		width: "500px",
+		autoOpen:false,
+		modal: true
+	});
+
+	$("#iconImg").click(function(){
+		$("[name=picFile]").click();
+		return false;
+	});
+
+
+	$("#canelButton").click(function(){
+		$("#editor").dialog("close");
+	});
+	$("#saveButton").click(function(){
+		$("#catalogForm").submit();
+	});
+	$("#catalogForm").validate({
+		rules:{
+			name: "required",
+			icon: "required",
+			description: "required",
+			weight: "required"
+		},
+		messages: {
+			name: "要给分类一个唯一的名字",
+			icon: "给它上传一个图标吧",
+			description: "写个简短的介绍吧",
+			weight: "给个权重值吧。数字越大越靠前"
+		},
+		submitHandler: function(form){
+			var view=new Array();
+			if($("#applistRadio").attr("checked")){
+				var tabViewLabelList=$("#catalogForm [name=tabViewLabel]");
+				var tabViewNameList=$("#catalogForm [name=tabViewName]");
+				var tabViewUrlList=$("#catalogForm [name=tabViewUrl]");
+				var defaultTabViewList=$("#catalogForm [name=defaultTabView]");
+				var tabViewCheckList=$("#catalogForm [name=tabViewCheckBox]");
+				var tabGroupViewList=$("#catalogForm [name=groupView]");
+				for(var i=0;i<tabViewLabelList.length;i++){
+					if(tabViewCheckList[i].checked){
+						var TabView=new Object();
+						TabView.name=tabViewNameList[i].value==""?tabViewLabelList[i].innerHTML:tabViewNameList[i].value;
+						TabView.url="http://android-api-0.shanhubay.com/catalog/"+$("#catalogForm [name=name]").val()+tabViewUrlList[i].value;
+						TabView.type=tabGroupViewList[i].value;
+						TabView.defaultView=defaultTabViewList[i].checked?"true":"false";
+						view.push(TabView);
+					}else{
+						continue;
+					}
+					
+				}
+			}
+
+			var data = {
+				name: $("#catalogForm [name=name]").val(),
+				icon: $("#catalogForm [name=icon]").val(),
+				weight: $("#catalogForm [name=weight]").val(),
+				description: $("#catalogForm [name=description]").val(),
+				root: $("#catalogForm [name=root]").is(":checked"),
+				children:$("#catalogForm [name=children]").tagit("assignedTags"),
+				defaultView:$("#catalogForm [name=defaultView]:checked").val(),
+				view:view
+			};
+			$.ajax({
+				url: "api/catalog/" + encodeURIComponent($("[name=name]").val()),
+				type: "put",
+				contentType: "application/json",
+				data: JSON.stringify(data),
+				dataType: "json",
+				success: function(resp){
+					loadData();
+					$("#editor").dialog("close");
+				}
+			});
+		}
+	});
+}
+
+function opinionInit(){
+	$("#editorOpinionDialog").dialog({
+		autoOpen: false,
+		title: "编辑小编推荐",
+		width: "auto",
+		height: "auto"
+	});	
+	$("#saveOpinionButton").click(function(){
+		$("#editorOpinionDialog form").submit();	
+	});
+	$("#canelOpinionButton").click(function(){
+		$("#editorOpinionDialog").dialog("close");
+	});
+
+	$.validator.addMethod("catalogName", function(value, element){
+		if(!value || value.length <= 0){
+			return true;
+		}
+		else{
+			var result = null;
+			$.ajax({
+				url: "api/app/published/" + encodeURIComponent(value),
+				async: false,
+				type: "get",
+				dataType: "json",
+				success: function(resp){
+					result = true;
+				},
+				error: function(){
+					result = false;
+				}
+			});
+			return result;
+		}
+	}, "这里需要一个有效的ID哟。");
+
+	$("#editorOpinionDialog form").validate({
+		onfocusout: false,
+		onkeyup: false,
+		onclick: false,
+		rules:{
+			editorOpinion0: "catalogName", 
+			editorOpinion1: "catalogName", 
+			editorOpinion2: "catalogName", 
+			editorOpinion3: "catalogName" 
+		},
+		submitHandler: function(form){
+			var data = new Array();
+			for(var i = 0; i < 4; i++){
+				var value = $("[name=editorOpinion" + i + "]").val();
+				if(value && value.length > 0){
+					data.push(value);
+				}
+			};
+
+			$.ajax({
+				url: "api/catalog/" + $("#editorOpinionDialog form").data("name") + "/editorOpinion",
+				type: "put",
+				contentType: "application/json",
+				data: JSON.stringify(data),
+				success: function(){
+					loadData();
+					$("#editorOpinionDialog").dialog("close");
+				}
+			});
+			return false;
+		}
+	});
+}
+
+function opinion(name){
+	$("#editorOpinionDialog form").each(function(){this.reset()});
+	$.ajax({
+		url: "api/catalog/" + name + "/editorOpinion",
+		type: "get",
+		dataType: "json",
+		success:function(resp){
+			if(resp){
+				var maxIndex = resp.length;
+				maxIndex = maxIndex >= 4 ? 4 : maxIndex;
+				for(var i = 0; i < maxIndex; i++){
+					$("[name=editorOpinion" + i + "]").val(resp[i]);
+				}
+			}
+			else{
+				$("#editorOpinionDialog form input[type=text]").val("");
+			}
+			$("#editorOpinionDialog").dialog("open");
+			$("#editorOpinionDialog form").data("name", name);
+		}
+	});
+}
+
+$(document).ready(function(){
+        $(".pages").paginator({
+                total:true,
+                currentPageId:0,
+                hashTag: hashTag() 
+        });
+
+        $("#dataList").simpleTable({
+                cols:[
+			"name",
+			"weight",
+			function(data){
+				if(data.defaultView=="applist"){
+					return "app列表";
+				}else if(data.defaultView=="catalog"){
+					return "子分类列表";
+				}
+			},
+			function(data){
+				return '<span class="sj' + (data.enabled ? '' : ' not') + '" onclick="togglePublish(\'' + data.name + '\', ' + data.enabled + ')"></span>';
+			},
+			function(data){
+				if(data.enabled){
+					return '编辑 | 删除 | <a href="javascript:void(0)" onclick="opinion(\'' + encodeURIComponent(data.name) + '\');">编辑小编推荐</a> | <a href="javascript:void(0)" onclick="showUrl(\'' + data.icon + '\');">查看url</a> ';
+				}
+				else{
+				return '<a href="javascript:void(0)" onclick="edit(\'' + encodeURIComponent(data.name) + '\');">编辑</a> | <a href="javascript:void(0)" onclick="remove(\'' + encodeURIComponent(data.name) + '\');">删除</a> | <a href="javascript:void(0)" onclick="opinion(\'' + encodeURIComponent(data.name) + '\');">编辑小编推荐</a>|| <a     href="javascript:void(0)" onclick="showUrl(\'' + data.icon + '\');">查看url</a>';
+				}
+                        }
+                ]
+        });
+
+	$.ajax({
+		url: "api/catalog/?parent=null",
+		type: "get",
+		dataType: "json",
+		success: function(resp){
+			$("#catalogFilter").empty();
+			$("#catalogFilter").append('<option value="">所有分类</option');
+			for(var i = 0; i < resp.result.length; i++){
+				$("#catalogFilter").append("<option>" + resp.result[i].name + "</option>");
+				if(catalog == resp.result[i].name){
+					$("#catalogFilter").val(resp.result[i].name);
+				}
+			}
+		}
+	});
+
+	$.ajax({
+		url: "api/catalog/",
+		type: "get",
+		dataType: "json",
+		success: function(resp){
+			for(var i = 0; i < resp.result.length; i++){
+				availableTags.push(resp.result[i].name);
+				availableTags.sort();
+			}
+			$("#children").tagit({
+				availableTags:availableTags 
+			});
+			$("#childrenSelector").autocomplete({
+				source: availableTags,
+				minLength: 1
+			})
+
+		}
+	});
+
+        $.history.init(function(hash){
+                onPage(hash);
+        }, {unescape: ",/"});
+
+	$("#catalogFilter").change(function(){
+		catalog = $(this).val();
+		$.history.load(hashTag().replace("__id__", page_id));
+	});
+
+	$("#createNew").click(function(){
+		openEdit();
+	});
+
+	editorInit();
+	opinionInit();
+
+	$("#searchForm").submit(function(){
+		$.history.load(hashTag().replace("__id__", 1));
+	});
+
+
+
+	$("#enableDialog").dialog({
+		title:"更改上下架状态",
+		autoOpen: false,
+		modal: true,
+		buttons:{
+			"更改":function(){
+				var name = $(this).data("name");
+				var enabled = $(this).data("enabled");
+				$.ajax({
+					url: "api/catalog/" + encodeURIComponent(name) + "/enabled",
+					type: "put",
+					contentType: "application/json",
+					data: '' + !enabled, 
+					success: function(){
+						loadData();
+					}
+				});
+				$(this).dialog("close");
+			},
+			"取消":function(){
+				$(this).dialog("close");
+			}
+		}
+	});
+	$("#showUrlDialog").dialog({
+		title:"分类url",
+		autoOpen: false,
+		modal: true
+	});	
+});
+function onPage(hash){
+	var pageNumber = 1;
+	var match = hash.match(/\!\/(.*)\/(.*)\/(\d+)/);
+	if(match){
+			$("#search").val(match[1]);
+	catalog = match[2];
+			page_id = match[3];
+	}
+	else{
+			page_id =  1;
+	}
+
+	$(".pages")
+			.paginator("hashTag", hashTag());
+
+	loadData();
+}
+
+function showUrl(url){
+	$("#showUrlDialog").html(url).dialog("open");
+}
+function liToggle(flag){
+	if(flag!="applist"){
+		$("#editor #appfreeli").hide();
+		$("#editor #appli").hide();
+		$("#editor #appgroupli").hide();		
+	}else{
+		$("#editor #appfreeli").show();
+		$("#editor #appli").show();
+		$("#editor #appgroupli").show();	
+	}
+}
+
+
+</script>
+</head>
+
+<body>
+<header> <a class="logo"></a> </header>
+<!--#include virtual="./menu.html" -->
+<div class="wrap">
+		<h2 class="title"><a href="">分类管理</a> > 一级分类管理</h2>
+		<div class="search cf">
+					<form id="searchForm">
+						<input id="search" class="input" placeholder="在这里搜索" />
+						<input type="submit" id="searchButton" class="submit button" value="搜索" />
+						<select id="catalogFilter">
+						</select>
+						<button class="submit button" style="float:right;margin-right:300px" type="button" id="createNew">添加</button>
+					</form>
+		</div>
+		
+		
+		
+		
+				<div class="table">
+						<table id="dataList" width="100%" border="0" cellspacing="0" cellpadding="0">
+								<thead>
+										<tr>
+												<td>分类名称</td>
+												<td>权重</td>
+												<td>目标视图</td>
+												<td>上架</td>
+												<td>操作</td>
+										</tr>
+								</thead>
+								<tbody>
+										<tr>
+											<td colspan="5">Loading...</td>
+										</tr>
+								</tbody>
+								<tfoot>
+										<tr>
+												<td>分类名称</td>
+												<td>权重</td>
+												<td>目标视图</td>
+												<td>上架</td>
+												<td>操作</td>
+										</tr>
+								</tfoot>
+						</table>
+						<div class="pages"> <span class="num">共3页，27个项目</span> <span class="pagelinks"> <a href="" class="first disable">首页</a> <a href="" class="prev disable">上页</a> <span class="pageinput">第
+								<input value="1" />
+								页</span> <a href="" class="next">下页</a> <a href="" class="last">尾页</a> </span> </div>
+				</div>
+
+
+
+				<div id="editor" class="popup_big cf" style="overflow:hidden">
+						<form id="catalogForm" method="post" action="javascript:return false;">
+						<ul class="edit">
+								<li class="field"><label class="field">分类名称</label>
+										<input name="name" size="15" maxlength="15" placeholder="分类名称" disabled="disabled" />
+								</li>
+								<li class="field"><label class="field">一级分类</label>
+										<input type="checkbox" name="root"></input>
+								</li>
+								<li class="field"><label class="field">子分类</label>
+									<input type="text" name="children" id="children"></input>
+								</li>
+								<li class="field"><label class="field">图标</label>
+										<img id="iconImg" width="128" height="128" style="cursor:pointer"></img><a href="javascript:void(0);" onclick="$('#iconImg').click();">更改图标</a>
+										<input type="hidden" name="icon" value="" />
+								<li class="field"><label class="field">介绍</label>
+										<input name="description" size="15" maxlength="15" placeholder="介绍"/>
+								</li>
+								<li class="field"><label class="field">权重</label>
+										<input name="weight" type="number" min="0" step="1" value="0"/>	
+								</li>
+								<li class="field"><label class="field">目标视图</label>
+										<input type="radio" name="defaultView"  id="applistRadio" value="applist" onChange="liToggle('applist')"/>app列表  <input type="radio" name="defaultView" value="catalog" onChange="liToggle('catalog')"/>子分类列表     	
+								</li>
+								<li class="field" id="appfreeli"><label class="field">视图类型</label>
+								<input name="tabViewCheckBox" type="checkbox" checked="true" id="appfreecheckbox"/>
+								<label for="tabViewName" name="tabViewLabel">热门</label>&nbsp;&nbsp;别名
+										<input name="tabViewName" type="text" size="10" />	
+										<input name="tabViewUrl" type="hidden" value="/app/hot/" size="10"/>	
+										<input type="radio" checked="true" name="defaultTabView" />默认视图
+										<select name="groupView">
+											<option value="scrollList">列表视图</option>
+											<option value="groupedList">分组视图</option>
+										</select>
+								</li>
+								<li class="field" id="appli"><label class="field">&nbsp;&nbsp;&nbsp;</label>
+								<input name="tabViewCheckBox" type="checkbox" checked="true" id="appcheckbox" />
+								<label for="tabViewName" name="tabViewLabel">新鲜</label>&nbsp;&nbsp;别名
+										<input name="tabViewName" type="text" size="10" />	
+										<input name="tabViewUrl" type="hidden" value="/app/new/" size="10"/>	
+										<input type="radio" name="defaultTabView" />默认视图
+										<select name="groupView">
+											<option value="scrollList">列表视图</option>
+											<option value="groupedList">分组视图</option>
+										</select>
+								</li>
+	
+								<li class="buttons">
+										<button id="saveButton" type="button" class="button">保存</button>
+										<button id="canelButton" type="button" class="button">取消</button>
+								</li>
+						</ul>
+						</form>
+										<input type="file" name="picFile" style="visibility: hidden"></input>
+				</div>
+				<div id="editorOpinionDialog" class="popup_big cf" style="overflow:hidden">
+						<form id="editorOpinionForm" method="post" action="javascript:return false;">
+							<ul class="edit">
+									<li class="field"><label class="field">推荐位置1</label>
+											<input name="editorOpinion0" type="text" placeholder="推荐应用的ID" /> 
+									</li>
+									<li class="field"><label class="field">推荐位置2</label>
+											<input name="editorOpinion1" type="text" placeholder="推荐应用的ID" /> 
+									</li>
+									<li class="field"><label class="field">推荐位置3</label>
+											<input name="editorOpinion2" type="text" placeholder="推荐应用的ID" /> 
+									</li>
+									<li class="field"><label class="field">推荐位置4</label>
+											<input name="editorOpinion3" type="text" placeholder="推荐应用的ID" /> 
+									</li>
+									<li class="buttons">
+											<button id="saveOpinionButton" type="button" class="button">保存</button>
+											<button id="canelOpinionButton" type="button" class="button">取消</button>
+									</li>
+							</ul>
+						</form>
+					</div>
+
+				<div class="delete">
+					<h4>确定要删除吗？</h4>
+					<button class="button">确定</button><button class="button">取消</button>
+				</div>
+
+
+				<div id="cataurl">
+					
+				</div>
+
+</div>
+
+<div id="enableDialog">
+	<p>确认要更改它的上下架状态吗？</p>
+</div>
+
+<div id="showUrlDialog">
+</div>
+
+
+</body>
+</html>

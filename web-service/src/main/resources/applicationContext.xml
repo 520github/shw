@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+         http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+         http://www.springframework.org/schema/context
+         http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<context:annotation-config />
+	<context:component-scan base-package="com.babeeta.appstore" />
+
+	<bean id="appDao" class="com.babeeta.appstore.dao.impl.AppDaoImpl" autowire="byName" destroy-method="shutdown"/>
+	<bean id="catalogDao" class="com.babeeta.appstore.dao.impl.CatalogDaoImpl"
+		scope="singleton" destroy-method="shutdown"/>
+	<bean id="brandDao" class="com.babeeta.appstore.dao.impl.BrandDaoImpl"
+		scope="singleton" destroy-method="shutdown"/>
+	<bean id="groupItemDao" class="com.babeeta.appstore.dao.impl.GroupItemDaoImpl"
+		scope="singleton" destroy-method="shutdown"/>
+	<bean id="deviceDao" class="com.babeeta.appstore.dao.impl.DeviceDaoImpl"
+		scope="singleton" destroy-method="shutdown"/>
+	<bean id="subscriptionRelationDao" class="com.babeeta.appstore.dao.impl.SubscriptionRelationDaoImpl" 
+	    scope="singleton" destroy-method="shutdown"/>
+	<bean id="randomServlet" class="com.babeeta.appstore.random.servlet.RandomServlet" 
+	    scope="singleton"/>
+	<bean id="luceneWrapper" class="com.babeeta.appstore.dao.impl.LuceneWrapper" scope="singleton"  destroy-method="close"/>
+	<bean id="notificationDao" class="com.babeeta.appstore.dao.impl.NotificationDaoImpl" destroy-method="shutdown"/>
+	<bean id="customerFeedbackDao" class="com.babeeta.appstore.dao.impl.CustomerFeedbackDaoImpl" destroy-method="shutdown"/>
+	<bean id="markerDaoImpl" class="com.babeeta.appstore.dao.impl.MarkerDaoImpl" destroy-method="shutdown"/>
+	<bean id="markerCounterDaoImpl" class="com.babeeta.appstore.dao.impl.MarkerCounterDaoImpl" destroy-method="shutdown"/>
+	<bean id="appJudgementDao" class="com.babeeta.appstore.dao.impl.AppJudgementDaoImpl" destroy-method="shutdown"/>
+	<bean id="appJudgementVoteDao" class="com.babeeta.appstore.dao.impl.AppJudgementVoteDaoImpl" destroy-method="shutdown"/>
+	<bean id="appTrackDao" class="com.babeeta.appstore.dao.impl.AppTrackDaoImpl" destroy-method="shutdown"/>
+	<bean id="weiBoDao" class="com.babeeta.appstore.dao.impl.WeiBoDaoImpl" destroy-method="shutdown"/>
+	
+		<bean id="messagePush" class=" com.babeeta.appstore.service.push.MessagePush">
+		<property name="host" value="${push.host}"></property>
+		<property name="appId" value="${push.appId}"></property>
+		<property name="appKey" value="${push.appKey}"></property>
+	</bean>
+	
+</beans>

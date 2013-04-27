@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>定时任务配置</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<link rel="stylesheet" type="text/css" href="css/custom-theme/jquery-ui-1.8.14.custom.css">
+<link rel="stylesheet" type="text/css" href="css/pagination.css">
+<link rel="stylesheet" type="text/css" href="css/jquery.tagit.css">
+<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script>
+<script type="text/javascript" src="js/jquery.form.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.14.custom.min.js"></script>
+<script type="text/javascript" src="js/jquery.paginator.1.0.0.M1.js"></script>
+<script type="text/javascript" src="js/jquery.simpletable.js"></script>
+<script type="text/javascript" src="js/jquery.history.js"></script>
+<script language="javascript" type="text/javascript" src="js/My97DatePicker/WdatePicker.js"></script>
+
+<script lanuage="javascript">
+$(document).ready(function(){
+
+	$("#editDialog").dialog({
+		title:"添加任务",
+		autoOpen: false,
+		modal: true
+	});	
+    $("#dataList").simpleTable({
+            cols:[
+		        "type",
+				"executeTime",
+				"beginTime",
+				"endTime",
+				"status",
+				"createTime",
+				function(data){
+		        	var html="";
+		        	if(data.status=="create"){
+		        		html='<input type="button" class="button"  onclick="deleteTask(\''+data.id+'\')" value="删除"/>';
+		        	}
+					return html;
+				}
+            ]
+    	}
+    );
+    
+	$("#addtask").click(function(){
+		$("#editDialog").dialog("open");
+	});
+	$("#saveBtn").click(function(){
+		if($("#executeTime").val()==""){
+			alert("选择时间");
+			return;
+		}else{
+		    $.ajax({
+		        url: "api/task/",
+		        dataType: "json",
+		        data:"executeTime="+$("#executeTime").val()+"&type="+$("select").val(),
+		        type: "post",
+		        success: function(resp){
+		        	$("#executeTime").val("");
+		        	$("#editDialog").dialog("close");
+		        	loadTask();
+		        }
+			});
+		}
+		
+	});
+    loadTask();
+
+});
+
+function loadTask(){
+    $.ajax({
+        url: "api/task/",
+        dataType: "json",
+        data:"offset=0&limit=100",
+        type: "get",
+        success: function(resp){
+                $("#dataList").simpleTable("fillData", resp);
+        }
+	});
+}
+function deleteTask(id){
+    $.ajax({
+        url: "api/task/",
+        data:id,
+        contentType:"text/plain",
+        type: "delete",
+        success: function(resp){
+        	loadTask();
+        }
+	});
+}
+</script>
+</head>
+
+<body>
+<header> <a class="logo"></a> </header>
+<!--#include virtual="./menu.html" -->
+<div class="wrap">
+		<h2 class="title"><a href="">系统管理</a> > 定时任务配置</h2>
+		<div class="search cf">
+		<input type="button" class="button"  id="addtask" value="添加定时任务"/>
+		</div>
+	<div class="table">
+						<table id="dataList" width="100%" border="0" cellspacing="0" cellpadding="0">
+								<thead>
+										<tr>
+												<td>任务类型</td>
+												<td>预定执行时间</td>
+												<td>开始执行时间</td>
+												<td>完成执行时间</td>
+												<td>状态</td>
+												<td>创建时间</td>
+												<td>操作</td>
+										</tr>
+								</thead>
+								<tbody>
+										<tr>
+											<td colspan="7">Loading...</td>
+										</tr>
+								</tbody>
+								<tfoot>
+										<tr>
+												<td>任务类型</td>
+												<td>预定执行时间</td>
+												<td>开始执行时间</td>
+												<td>完成执行时间</td>
+												<td>状态</td>
+												<td>创建时间</td>
+												<td>操作</td>
+										</tr>
+								</tfoot>
+						</table>
+		  </div>		
+</div>
+
+<div id="editDialog" >
+
+<table >
+<tr><td>任务类型</td>
+<td>
+<select name="task.type">
+<option value="index_json">index.json配置</option>
+<option value="brand_notice">品牌推送</option>
+<option value="best_app">精品推荐</option></select>
+</td></tr>
+<tr><td>预定执行时间</td><td><input  type="text"  id="executeTime" name="task.executeTime" onClick="WdatePicker({dateFmt:'yyyy-MM-dd HH:mm:ss'})" readonly="readonly"/></td></tr>
+<tr><td colspan="2"><input type="button"  id="saveBtn" value="保存" class="button"/></td></tr>
+</table>
+</div>
+
+</body>
+</html>

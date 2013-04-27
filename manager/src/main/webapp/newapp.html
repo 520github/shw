@@ -1,0 +1,276 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>处理新App</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<link rel="stylesheet" type="text/css" href="css/custom-theme/jquery-ui-1.8.14.custom.css">
+<link rel="stylesheet" type="text/css" href="css/pagination.css">
+<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.14.custom.min.js"></script>
+<script type="text/javascript" src="js/jquery.validate.min.js"></script>
+<script type="text/javascript" src="js/jquery.paginator.1.0.0.M1.js"></script>
+<script type="text/javascript" src="js/jquery.simpletable.js"></script>
+<script type="text/javascript" src="js/jquery.history.js"></script>
+<script type="text/javascript" src="js/json2.js"></script>
+<script type="text/javascript" src="js/jquery.xeditor.js"></script>
+<script lanuage="javascript">
+
+String.prototype.trim=function(){
+	return this.replace(/(^\s*)|(\s*$)/g, "");
+}
+var page_id = 0;
+
+function loadData(){
+		var param = new Array();
+		param.push({name: "search", value: $("#search").val()});
+		param.push({name: "offset", value: (page_id - 1) * 20});
+		param.push({name: "limit",  value: 20});
+		$.ajax({
+			url: "api/app/unprocessed/",
+			data: param,
+			dataType: "json",
+			type: "get",
+			success: function(resp){
+				$(".pages")
+					.paginator("totalRecords", resp.total)
+					.paginator("selectPage", page_id)
+					.paginator("redraw");
+				$("#dataList").simpleTable("fillData", resp.result);
+		        $(".intro .inside").empty();
+			}
+		});
+}
+
+function hashTag(){
+	return "!/" + encodeURIComponent($("#search").val()) + "/__id__";
+}
+
+function remove(appId){
+	$("#removeDialog")
+		.data("appId", appId)
+		.dialog("open");
+}
+
+function edit( appId ){
+	$(document).xeditor("edit", appId);
+}
+
+function releaseEdit(appId){
+	$.ajax({
+		url: "api/app/unprocessed/"+appId+"/releaseEdit",
+		type: "put",
+		success: function(){
+		}
+	});
+}
+
+$(document).ready(function(){
+	$(".pages").paginator({
+		total:true,
+		hashTag: hashTag() 
+	});
+
+	$("#dataList").simpleTable({
+		cols:[
+			"id", 
+			function(data){
+				return '<a href="' + data.detail.url + '" target="_blank">' + data.detail.name + '</a>';
+            }, 
+			function(data){
+				var htm = '<ul class="rowUl">';
+				for(var d in data.applicationMarketDetails){
+					var u=((data.applicationMarketDetails[d].webUrl)?data.applicationMarketDetails[d].webUrl:data.applicationMarketDetails[d].url);
+					htm+='<li><a target="_blank" href="'+u+'">'+d+'</a>';
+					if(data.detail.market==d){
+						htm+='<b>&nbsp;√</b>';
+					}
+					htm+='</li>';
+				}
+				htm+='</ul>'
+				return htm;
+			},
+			function(data){
+				var htm = '<ul class="rowUl">';
+				for(var d in data.applicationMarketDetails){
+					htm+='<li>'+data.applicationMarketDetails[d].version+'</li>';		
+				}
+				htm+='</ul>'
+				return htm;
+			},
+			function(data){
+				var htm = '<ul class="rowUl">';
+				for(var d in data.applicationMarketDetails){
+					htm+='<li>'+data.applicationMarketDetails[d].lastUpdate+'</li>';		
+				}
+				htm+='</ul>'
+				return htm;
+			},
+			function(data){
+				var htm = '<ul class="rowUl">';
+				for(var d in data.applicationMarketDetails){
+					htm+='<li>'+data.applicationMarketDetails[d].wholeVersionScore.vote+"/"+data.applicationMarketDetails[d].wholeVersionScore.star+'</li>';		
+				}
+				htm+='</ul>'
+				return htm;
+			},
+			function(data){
+				return '<a href="javascript:void(0);" onclick="edit(\'' + data.id + '\')">编辑</a>|<a href="javascript:void(0);" onclick="remove(\'' + data.id + '\')")>删除</a>'; 
+			}
+		]
+	})
+	.bind("selected",function(e, row){
+		var htm = '';
+				for(var d in row.applicationMarketDetails){
+					htm+='<span style="font-weight:bold">在<a target="_blank" href="'+row.applicationMarketDetails[d].url+'">'+d+'</a>商店的简介：</span><br>';
+					htm+='<li>'+row.applicationMarketDetails[d].originalDescription+'</li>';
+					htm+='<hr>';		
+				}
+		$(".intro .inside").html(htm);
+	});
+	
+	$.history.init(function(hash){
+		onPage(hash);
+	}, {unescape: true});
+
+	$("#searchForm").submit(function(){
+		$.history.load("!/" + encodeURIComponent($("#search").val()) + "/1");
+	});
+
+	$(document).xeditor({
+		appUrl: "api/app/unprocessed/{id}",
+		lockUrl: "api/app/unprocessed/{id}/editor"
+	});
+
+	$("#removeDialog").dialog({
+		title:"删除",
+		autoOpen: false,
+		modal: true,
+		buttons:{
+			"删除":function(){
+				var appId = $(this).data("appId");
+				$.ajax({
+					url: "api/app/unprocessed/" + appId,
+					async: false,
+					type: "delete",
+					dataType: "json",
+					success: function(resp){
+						if($("#xeditor").dialog("isOpen")){
+							$("#xeditor").dialog("close");
+						}
+						loadData();
+					},
+					error: function(jqXHR, textStatus, errorThrown){
+						if(jqXHR.status == 409){
+							alert('这个App已经被其他编辑锁定。');
+						}
+						else{
+							alert('加载数据出错，请稍后再试。');
+						}
+					}
+				});
+				$(this).dialog("close");
+
+			},
+			"取消":function(){
+				$(this).dialog("close");
+			}
+		}
+	});
+});
+function onPage(hash){
+	var pageNumber = 1;
+	var match = hash.match(/\!\/(.*)\/(\d+)/);
+	if(match){
+		$("#search").val(match[1]);
+		page_id = match[2];
+	}
+	else{
+		page_id =  1;
+	}
+
+	$(".pages")
+		.paginator("hashTag", hashTag());
+
+	loadData();
+}
+</script>
+</head>
+
+<body id="unprocessed">
+<header> <a class="logo"></a> </header>
+<!--#include virtual="./menu.html" -->
+<div class="wrap">
+		<h2 class="title"><a href="">应用管理</a> > 处理新APP</h2>
+		<div class="content cf">
+				<div class="table">
+						<table id="dataList" width="100%" border="0" cellspacing="0" cellpadding="0">
+								<thead>
+										<tr>
+												<th>ID</th>
+												<td>名称</td>
+												<td>市场</td>
+												<td>版本</td>
+												<td>最后更新</td>
+												<td>星/票</td>
+												<td>操作</td>
+										</tr>
+								</thead>
+								<tbody>
+										<tr class="loading">
+												<td colspan="8">Loading</td>
+										</tr>
+										<tr>
+												<td>com.babeeta.android</td>
+												<td>
+													<ul class="rowUl">
+														<li>走</li>
+														<li>开</li>
+														<li>拉</li>
+													</ul>
+												</td>
+												<td>Gfan</td>
+												<td>1.0.0</td>
+												<td>2M</td>
+												<td>￥12</td>
+												<td>4.5/3</td>
+												<td>编辑</td>
+										</tr>
+								</tbody>
+								<tfoot>
+										<tr>
+												<th>ID</th>
+												<td>名称</td>
+												<td>市场</td>
+												<td>版本</td>
+												<td>最后更新</td>
+												<td>星/票</td>
+												<td>操作</td>
+										</tr>
+								</tfoot>
+						</table>
+						<div class="pages"> <span class="num">共3页，27个项目</span> <span class="pagelinks"> <a href="" class="first disable">首页</a> <a href="" class="prev disable">上页</a> <span class="pageinput">第
+								<input value="1" />
+								页</span> <a href="" class="next">下页</a> <a href="" class="last">尾页</a> </span> </div>
+				</div>
+		</div>
+		<div class="sidebar">
+				<div class="search cf">
+				<form id="searchForm">
+						<input id="search" class="input" placeholder="在这里搜索" />
+						<input type="submit" id="searchButton"  class="submit button" value="搜索" />
+				</form>
+				</div>
+				<div class="intro">
+						<h3>当前条目在App Store中应用简介</h3>
+						<div class="inside">
+						</div>
+				</div>
+		</div>
+</div>
+<div id="removeDialog">
+<p>确定要删除这个App吗？删除后就再找回来就比较麻烦了哦。</p>
+</div>
+
+</body>
+</html>

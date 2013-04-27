@@ -1,0 +1,367 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>打擂</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<link rel="stylesheet" type="text/css" href="css/custom-theme/jquery-ui-1.8.14.custom.css">
+<link rel="stylesheet" type="text/css" href="css/pagination.css">
+<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.14.custom.min.js"></script>
+<script type="text/javascript" src="js/jquery.validate.min.js"></script>
+<script type="text/javascript" src="js/jquery.paginator.1.0.0.M1.js"></script>
+<script type="text/javascript" src="js/jquery.simpletable.js"></script>
+<script type="text/javascript" src="js/jquery.history.js"></script>
+<script type="text/javascript" src="js/json2.js"></script>
+<script type="text/javascript" src="js/jquery.xeditor.js"></script>
+<style>
+	.sortableDiv ul { border-style:outset; border-width:1px;list-style-type: none; margin: 10; padding: 0; margin-left: 90px;margin-bottom: 10px; }
+	.sortableDiv li { margin: 5px; padding: 5px; width: 150px; }
+	.sortableDiv li {width: 300px;}
+	.sortableDiv li img{float:right;cursor:pointer}
+	#addItemDiv {color:red}
+</style>
+<script lanuage="javascript">
+var page_id = 0;
+
+function loadData(){
+		var param = new Array();
+		param.push({name: "search", value: $("#search").val()});
+		param.push({name: "offset", value: (page_id - 1) * 20});
+		param.push({name: "limit",  value: 20});
+		$.ajax({
+			url: "api/app/judgement/",
+			data: param,
+			dataType: "json",
+			type: "get",
+			success: function(resp){
+				$(".pages")
+					.paginator("totalRecords", resp.total)
+					.paginator("selectPage", page_id)
+					.paginator("redraw");
+				$("#dataList").simpleTable("fillData", resp.result);
+		                $(".intro .inside").empty();
+			}
+		});
+}
+
+function hashTag(){
+	return "!/" + encodeURIComponent($("#search").val()) + "/__id__";
+}
+
+function toggleStatus(e){
+	if(!confirm("你确定此操作？")){
+		return;
+	}
+	var id = $(e).attr("id");
+	var published = $(e).attr("class")=="sj";
+	 $.ajax({
+        url: "api/app/judgement/available/"+id,
+        dataType: "json",
+        type: "put",
+        success: function(resp){
+             if(resp.available){
+             	$(e).attr("class","sj");
+             }else{
+             	$(e).attr("class","sj not");
+             }
+        },
+        error: function(){
+        	if(published){
+        		alert("上架出现错误！刷新列表页面或许能解决此问题。");
+        		$(e).attr("class","sj not");
+        	}else{
+        		alert("下架出现错误！刷新列表页面或许能解决此问题。");
+        		$(e).attr("class","sj");
+        	}
+		}
+    });
+}
+function openEditor(id){
+	if(id){
+		//TODO 从服务器取出实体对象，回显在编辑框
+		$.ajax({
+				url: "api/app/judgement/"+id,
+				type: "get",
+				contentType: "application/json",
+				dataType: "json",
+				success: function(resp){
+					addUnSortableItem(resp.candidateList);
+					$("#appJudgementForm [name=id]").val(resp.id),
+					$("#appJudgementForm [name=title]").val(resp.title),
+					$("#appJudgementForm [name=desc]").val(resp.desc),
+					$("#beginDate").val(resp.begin),
+					$("#endDate").val(resp.end),
+					$('#addItemDiv').css("display","none");
+					$("#editor").dialog("open");
+				}
+		});
+	}else{
+		$('#addItemDiv').css("display","block");
+		$("#editor").dialog("open");
+	}
+	
+}
+function clearEditor(){
+	$("#appJudgementForm").validate().resetForm();
+	appJudgementForm.reset();
+	$("#appJudgementForm [name=id]").val("");
+	$( "#beginDate" ).datepicker("refresh")
+	$( "#endDate" ).datepicker("refresh")
+	$("#sortable").empty()
+}
+function editorInit(){
+	$("#editor").dialog({
+		title: "编辑分类",
+		width: "500px",
+		autoOpen:false,
+		modal: true,
+		close: function(event, ui) {
+			clearEditor();
+		}
+	});
+	$("#appJudgementForm").validate({
+		rules:{
+			title: "required",
+			desc: "required",
+			begin:"required",
+			end:"required"
+		},
+		messages: {
+			title: "请填写擂台名称",
+			desc: "请给擂台一个简介",
+			begin:"请选择擂台的起止日期",
+			end: "请选择擂台的起止日期"
+		},
+		groups: {
+		    date: "begin end"
+		},
+	  	errorPlacement: function(error, element) {
+			if (element.attr("name") == "begin" 
+			             || element.attr("name") == "end" )
+				error.insertAfter("#endDate");
+			else
+				error.insertAfter(element);
+	   },
+		submitHandler: function(form){
+			var candidates = new Array();
+			$("#sortable").children().each(function(i,e){
+				var appId = $(e).children("span").html();
+				candidates.push({"appId":appId});
+			});
+			if(candidates.length!=4){
+				alert("请选择4个app进行打擂！");
+				return;
+			}
+			var data = {
+				title: $("#appJudgementForm [name=title]").val(),
+				desc: $("#appJudgementForm [name=desc]").val(),
+				begin: $("#beginDate").datepicker("getDate"),
+				end: $("#endDate").datepicker("getDate"),
+				candidateList:candidates
+			};
+			if($("#appJudgementForm [name=id]").val()!=''){
+				data.id = $("#appJudgementForm [name=id]").val();
+			}
+			$.ajax({
+				url: "api/app/judgement",
+				type: "put",
+				contentType: "application/json",
+				data: JSON.stringify(data),
+				dataType: "json",
+				success: function(resp){
+					loadData();
+					$("#editor").dialog("close");
+				}
+			});
+		}
+	});
+	$("#canelButton").click(function(){
+		$("#editor").dialog("close");
+	});
+	$("#saveButton").click(function(){
+		$("#appJudgementForm").submit();
+	});
+	$( "#beginDate" ).datepicker({
+		dateFormat:"yy年mm月dd日",
+		beforeShow:function(){
+				if($("#endDate" ).val()){
+					$("#beginDate" ).datepicker('option', 'maxDate', $( "#endDate" ).datepicker("getDate"));
+				}else{
+					$("#beginDate" ).datepicker('option', 'maxDate', "+30Y");
+				}
+		}
+	});
+	$( "#endDate" ).datepicker({
+		dateFormat:"yy年mm月dd日",
+		beforeShow:function(){
+				if($( "#beginDate" ).val()){
+					$("#endDate" ).datepicker('option', 'minDate', $( "#beginDate" ).datepicker("getDate"));
+				}else{
+					$("#endDate" ).datepicker('option', 'minDate', "-30Y");
+				}
+		}
+	});
+	$( "#sortable" ).sortable({
+			revert: true
+		});
+}
+function openSelector(){
+	window.open ('appselector.html?r='+Math.random(),'appselector','height=600px,width=900px,top=200,left=10,toolbar=no,menubar=no,scrollbars=no, resizable=no,location=no, status=no')
+}
+function addSortableItem(items){
+	$( "#sortable" ).sortable({ disabled: false });
+	
+	$.each(items,function(i,e){
+		$("#sortable").append('<li class="ui-state-default">应用ID:<span>'+e.appId+'</span><img alt="删除"  title="删除此项" src="images/minus.png" width="16px" height="16px" onclick="removeItem(this)"></li>');
+	})
+}
+function addUnSortableItem(items){
+	$( "#sortable" ).sortable({ disabled: true });
+	$.each(items,function(i,e){
+		var voteHtm = ",投票数:<span>"+(e.vote?0:e.vote)+"</span>";
+		$("#sortable").append('<li class="ui-state-default">应用ID:<span>'+e.appId+'</span>'+voteHtm+'</li>');
+	})
+}
+function addSelectedItem(arr){
+	var items = new Array();
+	$.each(arr,function(i,e){
+		items.push({"appId":e})
+	})
+	addSortableItem(items);
+}
+function removeItem(e){
+	$(e).parent().remove()
+}
+$(document).ready(function(){
+	$(".pages").paginator({
+		total:true,
+		hashTag: hashTag() 
+	});
+	$("#dataList").simpleTable({
+		cols:[
+			"id",
+			"title", 
+			"begin",
+			"end",
+			"operator",
+			function(data){
+				var checked = data.available?'checked':'';
+				return '<span id="'+data.id+'" class="sj' + (data.available ? '' : ' not') + '" onclick="toggleStatus(this)"></span>';
+			},
+			function(data){
+				return '<a href="javascript:void(0);" onclick="openEditor(\'' + data.id + '\')">编辑</a>';
+			}
+		]
+	})
+	
+	$.history.init(function(hash){
+		onPage(hash);
+	}, {unescape: true});
+
+	$("#searchForm").submit(function(){
+		$.history.load("!/" + encodeURIComponent($("#search").val()) + "/1");
+	});
+	
+	editorInit();
+	
+});
+
+function onPage(hash){
+	var pageNumber = 1;
+	var match = hash.match(/\!\/(.*)\/(\d+)/);
+	if(match){
+		$("#search").val(match[1]);
+		page_id = match[2];
+	}
+	else{
+		page_id =  1;
+	}
+
+	$(".pages")
+		.paginator("hashTag", hashTag());
+
+	loadData();
+}
+</script>
+</head>
+
+<body id="appJudgement">
+<header> <a class="logo"></a> </header>
+<!--#include virtual="./menu.html" -->
+<div class="wrap">
+		<h2 class="title"><a href="">擂台管理</a> >擂台列表</h2>
+		<div class="search cf">
+		<form id="searchForm">
+			<input class="input" placeholder="在这里搜索" id="search"/>
+			<input type="submit" id="searchButton"  class="submit button" value="搜索" />
+			<button class="submit button" style="float:right;margin-right:300px" type="button" onclick="openEditor()">添加擂台</button>
+		</form>
+		</div>
+		<div class="content cf">
+				<div class="table">
+						<table id="dataList" width="100%" border="0" cellspacing="0" cellpadding="0">
+								<thead>
+										<tr>
+												<th>ID</th>
+												<td>名称</td>
+												<td>开始</td>
+												<td>结束</td>
+												<td>操作员</td>
+												<td>上架</td>
+												<td>操作</td>
+										</tr>
+								</thead>
+								<tbody>
+										<tr class="loading">
+												<td colspan="7">Loading</td>
+										</tr>
+								</tbody>
+								<tfoot>
+										<tr>
+												<th>ID</th>
+												<td>名称</td>
+												<td>开始</td>
+												<td>结束</td>
+												<td>操作员</td>
+												<td>上架</td>
+												<td>操作</td>
+										</tr>
+								</tfoot>
+						</table>
+						<div class="pages"> <span class="num">共3页，27个项目</span> <span class="pagelinks"> <a href="" class="first disable">首页</a> <a href="" class="prev disable">上页</a> <span class="pageinput">第
+								<input value="1" />
+								页</span> <a href="" class="next">下页</a> <a href="" class="last">尾页</a> </span> </div>
+				</div>
+		</div>
+</div>
+<div id="editor" class="popup_big cf" style="overflow:hidden">
+	<form id="appJudgementForm" method="post" action="javascript:return false;">
+			<input type="hidden" name="id"/>
+			<ul class="edit">
+				<li class="field"><label class="field">擂台名称</label>
+						<input name="title" size="36" maxlength="50" placeholder="擂台名称" />
+				</li>
+				<li class="field"><label class="field">擂台说明</label>
+						<textarea name="desc" placeholder="擂台说明" col="15" row="15"></textarea>
+				</li>
+				<li class="field"><label class="field">起止日期</label>
+						<input id="beginDate" placeholder="开始日期" name="begin" size="17">-<input id="endDate" placeholder="结束日期" name="end" size="17">
+				</li>
+				<li class="field"><label class="field">应用</label>
+					<div class="sortableDiv">
+						<div id="addItemDiv"><button type="button" onclick="openSelector()" title="点击添加一个应用" class="button">添加应用</button>拖住选中的项可以进行排序</div>
+						<ul id="sortable">
+						</ul>
+					</div>
+				</li>
+				<li class="buttons">
+						<button id="saveButton" type="button" class="button">保存</button>
+						<button id="canelButton" type="button" class="button">取消</button>
+				</li>
+			</ul>
+	</form>
+</div>
+
+</body>
+</html>

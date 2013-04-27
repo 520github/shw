@@ -1,0 +1,411 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>搜索app</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<link rel="stylesheet" type="text/css" href="css/custom-theme/jquery-ui-1.8.14.custom.css">
+<link rel="stylesheet" type="text/css" href="css/pagination.css">
+<script type="text/javascript" src="js/jquery-1.6.2.min.js"></script>
+<script type="text/javascript" src="js/jquery-ui-1.8.14.custom.min.js"></script>
+<script type="text/javascript" src="js/jquery.validate.min.js"></script>
+<script type="text/javascript" src="js/jquery.paginator.1.0.0.M1.js"></script>
+<script type="text/javascript" src="js/jquery.simpletable.js"></script>
+<script type="text/javascript" src="js/jquery.history.js"></script>
+<script type="text/javascript" src="js/json2.js"></script>
+<script type="text/javascript" src="js/jquery.xeditor.js"></script>
+
+<script type="text/javascript">
+var page_id = 0;
+var catalog = "";
+
+function onPage(hash){
+        var pageNumber = 1;
+        var match = hash.match(/\!\/(.*)\/(.*)\/(.*)\/(.*)\/(\d+)/);
+        if(match){
+                catalog = decodeURIComponent(match[1]);
+				$("#catalogFilter").val(decodeURIComponent(match[1]));
+                $("#language").val(decodeURIComponent(match[2]));
+                $("#keyword").val(decodeURIComponent(match[3]));
+                $("#appid").val(decodeURIComponent(match[4]));
+                page_id = match[5];
+        }
+        else{
+                catalog = "";
+                page_id =  1;
+        }
+
+        $(".pages")
+                .paginator("hashTag", hashTag());
+
+        loadData();
+}
+function loadData(){
+                var param = new Array();
+                param.push({name: "appid", value: $("#appid").val()});
+                param.push({name: "offset", value: (page_id - 1) * 20});
+                param.push({name: "limit",  value: 20});
+				param.push({name: "catalog", value: $("#catalogFilter").val()});
+				param.push({name: "keyword", value: $("#keyword").val()});
+				param.push({name: "language", value: $("#language").val()});
+                $.ajax({
+                        url: "api/app/all/",
+                        data: param,
+                        dataType: "json",
+                        type: "get",
+                        success: function(resp){
+                                $(".pages")
+                                        .paginator("totalRecords", resp.total)
+                                        .paginator("selectPage", page_id)
+					.paginator("redraw");
+                                $("#dataList").simpleTable("fillData", resp.result);
+                                $(".intro .inside").empty();
+                        }
+                });
+}
+	function hashTag(){
+		return "!/" + $("#catalogFilter").val() +"/"+$("#language").val()+ "/"+$("#keyword").val()+"/" + $("#appid").val() + "/__id__";
+	}
+
+	function remove(appId){
+		$("#removeDialog")
+			.data("appId", appId)
+			.dialog("open");
+	}
+
+
+	function revert(appId){
+		$("#revertDialog").data("appId",appId).dialog("open");
+		
+	}
+
+
+	function edit( appId ){
+			$(document).xeditor("edit", appId);
+	}
+
+
+	//validate the search form
+	$(document).ready(function(){
+			$("#searchForm").validate({
+				rules:{
+					appid:{
+						number:true
+					}	
+				}	
+			});
+					
+        $(".pages").paginator({
+                total:true,
+                currentPageId:0,
+                hashTag: hashTag() 
+        });
+
+        $("#dataList").simpleTable({
+                cols:[
+                        "id", 
+							function(data){
+                                return '<a href="' + data.detail.url + '" target="_blank">' + data.detail.name + '</a>';
+                       		},
+							function(data){
+								return data.catalog==null ?"": data.catalog.join(";");
+							},
+							function(data){
+								var htm = '<ul class="rowUl">';
+								for(var d in data.applicationMarketDetails){
+									var u=((data.applicationMarketDetails[d].webUrl)?data.applicationMarketDetails[d].webUrl:data.applicationMarketDetails[d].url);
+									htm+='<li><a target="_blank" href="'+u+'">'+d+'</a>';
+									if(data.detail.market==d){
+										htm+='<b>&nbsp;√</b>';
+									}
+									htm+='</li>';
+								}
+								htm+='</ul>'
+								return htm;
+							},
+							function(data){
+								var htm = '<ul class="rowUl">';
+								for(var d in data.applicationMarketDetails){
+									htm+='<li>'+data.applicationMarketDetails[d].version+'</li>';		
+								}
+								htm+='</ul>'
+								return htm;
+							},
+							function(data){
+								var htm = '<ul class="rowUl">';
+								for(var d in data.applicationMarketDetails){
+									htm+='<li>'+data.applicationMarketDetails[d].lastUpdate+'</li>';		
+								}
+								htm+='</ul>'
+								return htm;
+							},
+							function(data){
+								var htm = '<ul class="rowUl">';
+								for(var d in data.applicationMarketDetails){
+									htm+='<li>'+data.applicationMarketDetails[d].wholeVersionScore.vote+"/"+data.applicationMarketDetails[d].wholeVersionScore.star+'</li>';		
+								}
+								htm+='</ul>'
+								return htm;
+							},
+					"status",
+							function(data){
+								if("disabled" == data.status|| "refused"==data.status||"unprocessed"==data.status){
+									return '<a href="javascript:void(0);" onclick="edit(\'' + data.id + '\')">编辑</a>  | <a href="javascript:void(0);" onclick="remove(\'' + data.id + '\')")>删除</a>';
+								}else if("deleted"==data.status){
+									return '<a href="javascript:void(0);" onclick="revert(\''+data.id+'\')">重置</a<'
+								}
+								else{
+									return '编辑 | 删除';
+								}
+				            }
+				  ]
+		})
+		.bind("selected",function(e, row){
+		
+			var htm = '';
+				for(var d in row.applicationMarketDetails){
+					htm+='<span style="font-weight:bold">在<a target="_blank" href="'+row.applicationMarketDetails[d].url+'">'+d+'</a>商店的简介：</span><br>';
+					htm+='<li>'+row.applicationMarketDetails[d].originalDescription+'</li>';
+					htm+='<hr>';		
+				}
+			$(".intro .inside").html(htm);
+			
+			$("#appIcon").attr("src",row.detail.logo);
+		});
+		
+		 $.ajax({
+                url:"api/catalog//",
+                type: "get",
+                dataType: "json",
+                success: function(resp){
+                        $("#catalogFilter").empty();
+                        $("#catalogFilter").append('<option value="" selected>全部</option>');
+                        for(var i = 0; i < resp.result.length; i++){
+                                var cat = resp.result[i];
+                                $("#catalogFilter").append('<option>' + cat["name"] + '</option>');
+                                if(catalog == cat["name"]){
+                                        $("#catalogFilter").val(cat["name"]);
+                                }
+                        }
+                }
+        });
+
+        $.history.init(function(hash){
+                onPage(hash);
+        }, {unescape: true}); 
+
+        $("#searchButton").click(function(){
+                location.href="#" + hashTag().replace("__id__", 1);
+        });
+        $("#moreSearchButton").click(function(){
+                location.href="#" + hashTag().replace("__id__", 1);
+        });
+		$(document).xeditor({
+			appUrl: "api/app/unprocessed/{id}",
+			lockUrl: "api/app/unprocessed/{id}/editor"
+		});
+
+
+	//remove app dialogue
+		$("#removeDialog").dialog({
+			title:"删除",
+			autoOpen: false,
+			modal: true,
+			buttons:{
+				"删除":function(){
+					var appId = $(this).data("appId");
+					$.ajax({
+						url: "api/app/unprocessed/" + appId,
+						type: "delete",
+						dataType: "json",
+						success: function(resp){
+							if($("#xeditor").dialog("isOpen")){
+								$("#xeditor").dialog("close");
+							}
+							loadData();
+						},
+						error: function(jqXHR, textStatus, errorThrown){
+							if(jqXHR.status == 409){
+								alert('这个App已经被其他编辑锁定。');
+							}
+							else{
+								alert('加载数据出错，请稍后再试。');
+							}
+						}
+					});
+					$(this).dialog("close");
+				},
+				"取消":function(){
+					$(this).dialog("close");
+				}
+			}
+		});	   
+
+
+
+
+		$("#revertDialog").dialog({
+			title:"重置",
+			autoOpen: false,
+			modal: true,
+			buttons:{
+				"重置":function(){
+					var appId = $(this).data("appId");
+					$.ajax({
+						url: "api/app/revert/" + appId,
+						type: "put",
+						dataType: "json",
+						success: function(resp){
+							if($("#xeditor").dialog("isOpen")){
+								$("#xeditor").dialog("close");
+							}
+							loadData();
+						},
+						error: function(jqXHR, textStatus, errorThrown){
+							if(jqXHR.status == 409){
+								alert('这个App已经被其他编辑锁定。');
+							}
+							else{
+								alert('加载数据出错，请稍后再试。');
+							}
+						}
+					});
+					$(this).dialog("close");
+				},
+				"取消":function(){
+					$(this).dialog("close");
+				}
+			}
+		});	   
+
+
+
+	});
+
+
+
+
+
+</script>
+
+</head>
+<body>
+<header> <a class="logo"></a> </header>
+<!--#include virtual="./menu.html" -->
+<div class="wrap">
+		<h2 class="title"><a href="">应用管理</a> > 查询app</h2>
+		<div class="search cf">
+			<div class="itemDiv">
+				ID:
+			</div>
+				<input class="input"  placeholder="输入AppId搜索" id="appid"/>
+				<input type="submit" onclick="js:return 0;" id="searchButton"  class="submit button" value="搜索" />
+		</div>
+		<br>
+		<br>
+		<h2 class="title"><a href="">应用管理</a> > 高级app查询</h2>
+
+		<div class="search cf">
+
+				<div class="itemDiv">
+					分类
+				</div>
+				<select  id="catalogFilter" name="catalog">
+				</select>
+
+				
+				<div class="itemDiv">
+					语言
+				</div>
+				<select id="language" name="language">
+					<option value="">全部</option>
+					<option value="中文">中文</option>
+					<option value="英语">English</option>
+				</select>
+
+				<input class="input" name="keyword" placeholder="关键字仅针对app名称哦" id="keyword"/>
+				<input type="submit" id="moreSearchButton"  class="submit button" value="搜索" />
+
+		</div>
+		<br>
+		<br>
+
+		<!--content div start-->
+		<div class="content cf">
+				<div class="table">
+						<table id="dataList" width="100%" border="0" cellspacing="0" cellpadding="0">
+								<thead>
+										<tr>
+												<th>ID</th>
+												<td>名称</td>
+												<td>分类</td>
+												<td>市场</td>
+												<td>版本</td>
+												<td>最后更新</td>
+												<td>星/票</td>
+												<td>状态</td>
+												<td>操作</td>
+										</tr>
+								</thead>
+								<tbody>
+										<tr><td colspan="7">Searching...</td></tr>
+								</tbody>
+								<tfoot>
+										<tr>
+												<th>ID</th>
+												<td>名称</td>
+												<td>分类</td>
+												<td>市场</td>
+												<td>版本</td>
+												<td>最后更新</td>
+												<td>星/票</td>
+												<td>状态</td>
+												<td>操作</td>
+										</tr>
+								</tfoot>
+						</table>
+
+
+
+
+						<div class="pages"> <span class="num">共3页，27个项目</span> <span class="pagelinks"> <a href="" class="first disable">首页</a> <a href="" class="prev disable">上页</a> <span class="pageinput">第
+								<input value="1" />
+								页</span> <a href="" class="next">下页</a> <a href="" class="last">尾页</a> </span> </div>
+
+				</div>
+
+			</div>
+				<div class="sidebar">
+						<div class="intro">
+								<h3>当前条目在App Store中应用简介</h3>
+								<div class="icon">
+									<img id="appIcon" />
+								</div>
+								<div class="inside">
+								</div>
+						</div>
+				</div>
+
+</div>
+
+				
+
+
+
+<div class="delete">
+	<h4>确定要删除吗？</h4>
+	<button class="button">确定</button><button class="button">取消</button>
+</div>
+
+
+
+</div>
+<div id="removeDialog">
+<p>确定要删除这个App吗？删除后就再找回来就比较麻烦了哦。</p>
+</div>
+<div id="revertDialog">
+<p>确定要重置这个App吗？重置后将会变为未编辑状态哦亲。</p>
+</div>
+	
+</body>
+</html>

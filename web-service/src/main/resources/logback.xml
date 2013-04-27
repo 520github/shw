@@ -1,0 +1,12 @@
+<configuration>
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>		
+			<Pattern>%d %p %t %logger{5}\(%L\) %m%n</Pattern>		
+		</encoder>
+	</appender>
+	<logger name="com.babeeta" level="DEBUG">
+	</logger>
+	<root level="INFO">
+		<appender-ref ref="STDOUT" />
+	</root>
+</configuration>
